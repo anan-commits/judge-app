@@ -44,7 +44,7 @@ const LINE_DETAIL_URL = "https://line.me/R/ti/p/@judgecode";
 const DEMO_PARTNER_BIRTHDATE = "1995-03-21";
 const DEMO_PARTNER_BIRTHTIME = "15:00";
 
-/** 未診断モード: この文字数以上の送信を「深い相談」とみなし診断導線を出す */
+/** 未診断モード: この文字数以上の入力（下書き）または1回の送信で診断導線を出す */
 const DEEP_CONSULT_MIN_CHARS = 120;
 /** 未診断モード: この送信回数で診断導線を出す */
 const DIAGNOSIS_NUDGE_AFTER_SENDS = 3;
@@ -169,15 +169,14 @@ function AiSixSectionCards({
 function DiagnosisNudgeCard() {
   return (
     <div className="rounded-2xl border border-amber-200/90 bg-amber-50/90 p-4">
-      <p className="text-xs font-semibold text-amber-950">統合占術で2人の相性を整理する</p>
-      <p className="mt-2 text-sm leading-relaxed text-amber-950/85">
-        生年月日と出生時間を入力すると、五行・九星・個性学に基づく深い伴走が利用できます。
+      <p className="text-sm font-medium leading-relaxed text-amber-950">
+        この相談は相性診断をすると精度が上がります
       </p>
       <Link
         href="/diagnosis"
         className="mt-4 inline-flex h-11 min-h-[44px] w-full items-center justify-center rounded-full bg-zinc-900 px-4 text-sm font-semibold text-white hover:bg-zinc-800 sm:w-auto"
       >
-        診断ページへ
+        無料で診断する
       </Link>
     </div>
   );
@@ -223,6 +222,13 @@ function ChatPageContent() {
     setMode("undiagnosed");
   }, [isFullDemo]);
 
+  useEffect(() => {
+    if (mode !== "undiagnosed") return;
+    if (draft.trim().length >= DEEP_CONSULT_MIN_CHARS) {
+      setShowDiagnosisNudge(true);
+    }
+  }, [mode, draft]);
+
   const displayThreads = useMemo(() => threadsForMode(mode), [mode]);
 
   const summaryTags = useMemo(() => {
@@ -240,8 +246,8 @@ function ChatPageContent() {
     if (mode === "undiagnosed" && text.length > 0) {
       const nextCount = sendCount + 1;
       setSendCount(nextCount);
-      const deep = text.length >= DEEP_CONSULT_MIN_CHARS;
-      if (deep || nextCount >= DIAGNOSIS_NUDGE_AFTER_SENDS) {
+      const longMessage = text.length >= DEEP_CONSULT_MIN_CHARS;
+      if (nextCount >= DIAGNOSIS_NUDGE_AFTER_SENDS || longMessage) {
         setShowDiagnosisNudge(true);
       }
     }
@@ -358,6 +364,15 @@ function ChatPageContent() {
                 </div>
               </div>
             ))}
+
+            {mode === "undiagnosed" && showDiagnosisNudge ? (
+              <div className="border-b border-zinc-100 pb-6 last:border-0 last:pb-0">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+                  Judge Code AI
+                </p>
+                <DiagnosisNudgeCard />
+              </div>
+            ) : null}
           </div>
 
           <div className="mt-8 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
@@ -376,11 +391,6 @@ function ChatPageContent() {
           </div>
 
           <div className="mt-4 rounded-2xl border border-zinc-200 bg-white p-3">
-            {mode === "undiagnosed" && showDiagnosisNudge ? (
-              <div className="mb-4">
-                <DiagnosisNudgeCard />
-              </div>
-            ) : null}
             <textarea
               rows={3}
               value={draft}
@@ -394,9 +404,8 @@ function ChatPageContent() {
             />
             {mode === "undiagnosed" ? (
               <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
-                本文付きの送信が{DIAGNOSIS_NUDGE_AFTER_SENDS}
-                回に達するか、{DEEP_CONSULT_MIN_CHARS}
-                文字以上の長文を送ると、下に診断への案内が表示されます。
+                発言が{DIAGNOSIS_NUDGE_AFTER_SENDS}回以上、または{DEEP_CONSULT_MIN_CHARS}
+                文字以上入力したとき、上のチャット内に診断案内が表示されます。
               </p>
             ) : null}
             <div className="mt-3 flex justify-end">
