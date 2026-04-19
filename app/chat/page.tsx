@@ -168,13 +168,20 @@ function AiSixSectionCards({
 
 function DiagnosisNudgeCard() {
   return (
-    <div className="rounded-2xl border border-amber-200/90 bg-amber-50/90 p-4">
-      <p className="text-sm font-medium leading-relaxed text-amber-950">
-        この相談は相性診断をすると精度が上がります
+    <div
+      role="region"
+      aria-label="相性診断の案内"
+      className="rounded-2xl border border-amber-200/90 bg-amber-50/95 p-4 shadow-sm ring-1 ring-amber-100/60 sm:p-5"
+    >
+      <h2 className="text-[15px] font-semibold leading-snug tracking-tight text-amber-950 sm:text-base">
+        この相談は、2人の相性診断をすると精度が上がります
+      </h2>
+      <p className="mt-2.5 text-sm leading-relaxed text-amber-950/90">
+        生年月日と出生時間を入れると、相手の心理や次の一手をより具体的に整理できます
       </p>
       <Link
         href="/diagnosis"
-        className="mt-4 inline-flex h-11 min-h-[44px] w-full items-center justify-center rounded-full bg-zinc-900 px-4 text-sm font-semibold text-white hover:bg-zinc-800 sm:w-auto"
+        className="mt-4 flex h-12 w-full min-h-[48px] items-center justify-center rounded-full bg-zinc-900 px-4 text-sm font-semibold text-white hover:bg-zinc-800 active:bg-zinc-800"
       >
         無料で診断する
       </Link>
@@ -221,6 +228,12 @@ function ChatPageContent() {
     setResult(null);
     setMode("undiagnosed");
   }, [isFullDemo]);
+
+  useEffect(() => {
+    if (mode !== "undiagnosed") {
+      setShowDiagnosisNudge(false);
+    }
+  }, [mode]);
 
   useEffect(() => {
     if (mode !== "undiagnosed") return;
@@ -364,15 +377,6 @@ function ChatPageContent() {
                 </div>
               </div>
             ))}
-
-            {mode === "undiagnosed" && showDiagnosisNudge ? (
-              <div className="border-b border-zinc-100 pb-6 last:border-0 last:pb-0">
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
-                  Judge Code AI
-                </p>
-                <DiagnosisNudgeCard />
-              </div>
-            ) : null}
           </div>
 
           <div className="mt-8 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
@@ -390,7 +394,15 @@ function ChatPageContent() {
             </label>
           </div>
 
-          <div className="mt-4 rounded-2xl border border-zinc-200 bg-white p-3">
+          <div className="mt-4 rounded-2xl border border-zinc-200 bg-white p-3 sm:p-4">
+            {mode === "undiagnosed" && showDiagnosisNudge ? (
+              <div className="mb-4">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+                  Judge Code AI
+                </p>
+                <DiagnosisNudgeCard />
+              </div>
+            ) : null}
             <textarea
               rows={3}
               value={draft}
@@ -405,7 +417,7 @@ function ChatPageContent() {
             {mode === "undiagnosed" ? (
               <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
                 発言が{DIAGNOSIS_NUDGE_AFTER_SENDS}回以上、または{DEEP_CONSULT_MIN_CHARS}
-                文字以上入力したとき、上のチャット内に診断案内が表示されます。
+                文字以上入力したとき、上に診断案内が表示されます。
               </p>
             ) : null}
             <div className="mt-3 flex justify-end">
