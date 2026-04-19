@@ -69,7 +69,7 @@ export default function Home() {
           </p>
           <div className="mt-12 flex flex-wrap items-center gap-4">
             <a
-              href="#start"
+              href="/diagnosis"
               className="inline-flex h-12 items-center justify-center rounded-full bg-zinc-950 px-8 text-sm font-medium tracking-wide text-white shadow-sm transition hover:bg-zinc-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950"
             >
               無料診断を始める
@@ -161,7 +161,7 @@ export default function Home() {
               </p>
             </div>
             <a
-              href="#start"
+              href="/diagnosis"
               className="inline-flex h-12 w-full items-center justify-center rounded-full bg-white px-10 text-sm font-semibold tracking-wide text-zinc-950 transition hover:bg-zinc-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white md:w-auto"
             >
               今すぐ無料診断
