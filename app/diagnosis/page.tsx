@@ -1,3 +1,8 @@
+"use client";
+
+import type { FormEvent } from "react";
+import { useRouter } from "next/navigation";
+
 const profileItems = [
   { label: "生年月日", value: "1992年 11月 08日" },
   { label: "出生時間", value: "08:24" },
@@ -30,6 +35,19 @@ function PersonSilhouette() {
 }
 
 export default function DiagnosisPage() {
+  const router = useRouter();
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const partnerBirthdate = String(formData.get("partner-birthdate") ?? "");
+    const partnerBirthtime = String(formData.get("partner-birthtime") ?? "");
+
+    sessionStorage.setItem("judge-code:partner-birthdate", partnerBirthdate);
+    sessionStorage.setItem("judge-code:partner-birthtime", partnerBirthtime);
+    router.push("/result");
+  };
+
   return (
     <main className="min-h-screen bg-[#f7f7f5] text-zinc-900">
       <header className="border-b border-zinc-200/80 bg-[#f7f7f5]/90 backdrop-blur-md">
@@ -110,7 +128,7 @@ export default function DiagnosisPage() {
               </p>
             </div>
 
-            <form className="mt-8 space-y-5">
+            <form onSubmit={handleSubmit} className="mt-8 space-y-5">
               <div className="space-y-2">
                 <label
                   htmlFor="partner-birthdate"
@@ -122,6 +140,7 @@ export default function DiagnosisPage() {
                   id="partner-birthdate"
                   name="partner-birthdate"
                   type="date"
+                  required
                   className="h-12 w-full rounded-2xl border border-zinc-300 bg-white px-4 text-base text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-500 focus:ring-4 focus:ring-zinc-200/70"
                 />
               </div>
@@ -137,6 +156,7 @@ export default function DiagnosisPage() {
                   id="partner-birthtime"
                   name="partner-birthtime"
                   type="time"
+                  required
                   className="h-12 w-full rounded-2xl border border-zinc-300 bg-white px-4 text-base text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-500 focus:ring-4 focus:ring-zinc-200/70"
                 />
               </div>
