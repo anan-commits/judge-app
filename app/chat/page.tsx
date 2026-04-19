@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import {
   buildPartnerProfile,
   calculateCompatibility,
@@ -40,6 +40,20 @@ type ConsultThread = {
 
 const LINE_DETAIL_URL = "https://line.me/R/ti/p/@judgecode";
 
+/** `/chat?full=1` で相手入力が無いときに相性サマリー用に使うダミー */
+const DEMO_PARTNER_BIRTHDATE = "1995-03-21";
+const DEMO_PARTNER_BIRTHTIME = "15:00";
+
+/** 未診断モード: この文字数以上の送信を「深い相談」とみなし診断導線を出す */
+const DEEP_CONSULT_MIN_CHARS = 120;
+/** 未診断モード: この送信回数で診断導線を出す */
+const DIAGNOSIS_NUDGE_AFTER_SENDS = 3;
+
+const UNDIAGNOSED_LIGHT_REPLY_T3 =
+  "まず24〜48時間は間を空けるのが無難です。要点は1つに絞った短文にすると負担が少ないです。（※五行・九星などの統合視点は診断後に案内します）";
+
+type ChatMode = "loading" | "full" | "diagnosed" | "undiagnosed";
+
 const dummyThreads: ConsultThread[] = [
   {
     id: "t1",
@@ -75,6 +89,20 @@ const dummyThreads: ConsultThread[] = [
     },
   },
 ];
+
+function threadsForMode(mode: ChatMode): ConsultThread[] {
+  if (mode !== "undiagnosed") return dummyThreads;
+  return dummyThreads.map((t) =>
+    t.id === "t3"
+      ? {
+          ...t,
+          assistantMode: "simple" as const,
+          assistantSimpleText: UNDIAGNOSED_LIGHT_REPLY_T3,
+          sections: undefined,
+        }
+      : t,
+  );
+}
 
 const SECTION_DEF: { key: keyof AiReplySections; title: string }[] = [
   { key: "currentState", title: "1. 現状整理" },
@@ -138,28 +166,64 @@ function AiSixSectionCards({
   );
 }
 
+function DiagnosisNudgeCard() {
+  return (
+    <div className="rounded-2xl border border-amber-200/90 bg-amber-50/90 p-4">
+      <p className="text-xs font-semibold text-amber-950">統合占術で2人の相性を整理する</p>
+      <p className="mt-2 text-sm leading-relaxed text-amber-950/85">
+        生年月日と出生時間を入力すると、五行・九星・個性学に基づく深い伴走が利用できます。
+      </p>
+      <Link
+        href="/diagnosis"
+        className="mt-4 inline-flex h-11 min-h-[44px] w-full items-center justify-center rounded-full bg-zinc-900 px-4 text-sm font-semibold text-white hover:bg-zinc-800 sm:w-auto"
+      >
+        診断ページへ
+      </Link>
+    </div>
+  );
+}
+
 function ChatPageContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const [checked, setChecked] = useState(false);
+  const [mode, setMode] = useState<ChatMode>("loading");
   const [result, setResult] = useState<CompatibilityResult | null>(null);
   const [partner, setPartner] = useState<PersonProfile | null>(null);
-  /** デモ用: `/chat?full=1` で有料相当（6セクションすべて表示） */
-  const isFreeUser = searchParams.get("full") !== "1";
+  const [draft, setDraft] = useState("");
+  const [sendCount, setSendCount] = useState(0);
+  const [showDiagnosisNudge, setShowDiagnosisNudge] = useState(false);
+
+  const isFullDemo = searchParams.get("full") === "1";
+  const isFreeUser = !isFullDemo;
 
   useEffect(() => {
-    const birthdate = sessionStorage.getItem("judge-code:partner-birthdate");
-    const birthtime = sessionStorage.getItem("judge-code:partner-birthtime");
-    if (!birthdate || !birthtime) {
-      router.replace("/diagnosis");
+    const storedBirthdate = sessionStorage.getItem("judge-code:partner-birthdate");
+    const storedBirthtime = sessionStorage.getItem("judge-code:partner-birthtime");
+    const hasStoredPartner = Boolean(storedBirthdate && storedBirthtime);
+
+    if (isFullDemo) {
+      const birthdate = storedBirthdate || DEMO_PARTNER_BIRTHDATE;
+      const birthtime = storedBirthtime || DEMO_PARTNER_BIRTHTIME;
+      const partnerProfile = buildPartnerProfile(birthdate, birthtime);
+      setPartner(partnerProfile);
+      setResult(calculateCompatibility(selfProfile, partnerProfile));
+      setMode("full");
       return;
     }
 
-    const partnerProfile = buildPartnerProfile(birthdate, birthtime);
-    setPartner(partnerProfile);
-    setResult(calculateCompatibility(selfProfile, partnerProfile));
-    setChecked(true);
-  }, [router]);
+    if (hasStoredPartner) {
+      const partnerProfile = buildPartnerProfile(storedBirthdate!, storedBirthtime!);
+      setPartner(partnerProfile);
+      setResult(calculateCompatibility(selfProfile, partnerProfile));
+      setMode("diagnosed");
+      return;
+    }
+
+    setPartner(null);
+    setResult(null);
+    setMode("undiagnosed");
+  }, [isFullDemo]);
+
+  const displayThreads = useMemo(() => threadsForMode(mode), [mode]);
 
   const summaryTags = useMemo(() => {
     if (!result) return [];
@@ -171,7 +235,20 @@ function ChatPageContent() {
     ];
   }, [result]);
 
-  if (!checked) {
+  const handleSend = () => {
+    const text = draft.trim();
+    if (mode === "undiagnosed" && text.length > 0) {
+      const nextCount = sendCount + 1;
+      setSendCount(nextCount);
+      const deep = text.length >= DEEP_CONSULT_MIN_CHARS;
+      if (deep || nextCount >= DIAGNOSIS_NUDGE_AFTER_SENDS) {
+        setShowDiagnosisNudge(true);
+      }
+    }
+    setDraft("");
+  };
+
+  if (mode === "loading") {
     return (
       <main className="min-h-screen bg-[#f7f7f5] text-zinc-900">
         <div className="mx-auto max-w-2xl px-4 py-16 text-sm text-zinc-500">
@@ -194,22 +271,46 @@ function ChatPageContent() {
 
       <section className="sticky top-0 z-20 border-b border-zinc-200/80 bg-[#f7f7f5]/95 backdrop-blur">
         <div className="mx-auto max-w-2xl px-4 py-3">
-          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-500">
-            2人の相性サマリー
-          </p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {summaryTags.map((tag) => (
-              <span
-                key={tag}
-                className="inline-flex items-center rounded-full border border-zinc-300 bg-white px-2.5 py-1 text-[11px] text-zinc-700"
+          {mode === "undiagnosed" ? (
+            <>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-500">
+                  未診断モード
+                </p>
+                <span className="rounded-full border border-zinc-300 bg-white px-2 py-0.5 text-[10px] font-medium text-zinc-600">
+                  軽いアドバイスのみ
+                </span>
+              </div>
+              <p className="mt-2 text-xs leading-relaxed text-zinc-600">
+                相手の生年月日が未入力のため、統合占術のサマリーは表示されません。診断すると深い伴走が利用できます。
+              </p>
+              <Link
+                href="/diagnosis"
+                className="mt-2 inline-flex text-xs font-semibold text-zinc-900 underline underline-offset-2 hover:text-zinc-600"
               >
-                {tag}
-              </span>
-            ))}
-            <span className="inline-flex items-center rounded-full border border-zinc-300 bg-white px-2.5 py-1 text-[11px] text-zinc-700">
-              相手 {partner?.birthdate ?? "-"}
-            </span>
-          </div>
+                2人の診断をはじめる
+              </Link>
+            </>
+          ) : (
+            <>
+              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-500">
+                2人の相性サマリー
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {summaryTags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center rounded-full border border-zinc-300 bg-white px-2.5 py-1 text-[11px] text-zinc-700"
+                  >
+                    {tag}
+                  </span>
+                ))}
+                <span className="inline-flex items-center rounded-full border border-zinc-300 bg-white px-2.5 py-1 text-[11px] text-zinc-700">
+                  相手 {partner?.birthdate ?? "-"}
+                </span>
+              </div>
+            </>
+          )}
         </div>
       </section>
 
@@ -218,10 +319,14 @@ function ChatPageContent() {
           <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-500">
             チャット相談履歴
           </p>
-          <p className="mt-1 text-xs text-zinc-500">ダミー3件（最新のみ6セクション形式）</p>
+          <p className="mt-1 text-xs text-zinc-500">
+            {mode === "undiagnosed"
+              ? "ダミー履歴（未診断のため短文アドバイスのみ）"
+              : "ダミー3件（最新のみ6セクション形式）"}
+          </p>
 
           <div className="mt-5 space-y-6">
-            {dummyThreads.map((thread) => (
+            {displayThreads.map((thread) => (
               <div key={thread.id} className="border-b border-zinc-100 pb-6 last:border-0 last:pb-0">
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <span className="text-[11px] font-medium text-zinc-500">{thread.date}</span>
@@ -271,14 +376,33 @@ function ChatPageContent() {
           </div>
 
           <div className="mt-4 rounded-2xl border border-zinc-200 bg-white p-3">
+            {mode === "undiagnosed" && showDiagnosisNudge ? (
+              <div className="mb-4">
+                <DiagnosisNudgeCard />
+              </div>
+            ) : null}
             <textarea
               rows={3}
-              placeholder="ここに2人の状況や相談したい文面を入力してください（MVPでは送信は未接続）"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder={
+                mode === "undiagnosed"
+                  ? "状況を書くと、まずは軽い観点からの返答を想定しています（送信は準備中・回数のみカウント）"
+                  : "ここに2人の状況や相談したい文面を入力してください（MVPでは送信は未接続）"
+              }
               className="min-h-[88px] w-full resize-none border-none bg-transparent text-sm text-zinc-800 outline-none placeholder:text-zinc-400"
             />
+            {mode === "undiagnosed" ? (
+              <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
+                本文付きの送信が{DIAGNOSIS_NUDGE_AFTER_SENDS}
+                回に達するか、{DEEP_CONSULT_MIN_CHARS}
+                文字以上の長文を送ると、下に診断への案内が表示されます。
+              </p>
+            ) : null}
             <div className="mt-3 flex justify-end">
               <button
                 type="button"
+                onClick={handleSend}
                 className="inline-flex h-11 min-h-[44px] items-center justify-center rounded-full bg-zinc-900 px-6 text-sm font-medium text-white hover:bg-zinc-800"
               >
                 送信（準備中）
