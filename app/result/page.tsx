@@ -477,9 +477,6 @@ function ResultPageContent() {
 
   return (
     <main className="min-h-screen bg-[#f7f7f5] text-zinc-900">
-      <div style={{ background: "red", color: "white", padding: 8 }}>
-        RESULT PAGE DEBUG MARKER
-      </div>
       <header className="border-b border-zinc-200/80 bg-[#f7f7f5]/90 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6 md:px-10">
           <a href="/" className="flex items-baseline gap-2">

@@ -1,18 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import type { Person, RelationshipLog } from "../lib/people/types";
+import { loadPeople, loadRelationshipLogs, saveRelationshipLogs } from "../lib/people/storage";
 
-export type LogItem = {
-  id: string;
-  date: string;
-  type: "LINE" | "デート" | "気づき";
-  content: string;
-};
-
-const STORAGE_KEY = "judge-code:relationship-logs";
-
-function toTimestampLabel(date: Date): string {
-  return date.toLocaleString("ja-JP", {
+function toTimestampLabel(timestamp: number): string {
+  return new Date(timestamp).toLocaleString("ja-JP", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -22,44 +15,43 @@ function toTimestampLabel(date: Date): string {
 }
 
 export default function RelationshipLog() {
-  const [logs, setLogs] = useState<LogItem[]>([]);
+  const [logs, setLogs] = useState<RelationshipLog[]>([]);
+  const [people, setPeople] = useState<Person[]>([]);
+  const [personId, setPersonId] = useState("");
   const [content, setContent] = useState("");
-  const [type, setType] = useState<LogItem["type"]>("LINE");
+  const [type, setType] = useState<RelationshipLog["type"]>("note");
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as LogItem[];
-      if (Array.isArray(parsed)) {
-        setLogs(parsed);
-      }
-    } catch {
-      // ignore parse errors and continue with empty state
+    const loadedPeople = loadPeople();
+    setPeople(loadedPeople);
+    if (loadedPeople.length > 0) {
+      setPersonId(loadedPeople[0].id);
     }
+    setLogs(loadRelationshipLogs());
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
+    saveRelationshipLogs(logs);
   }, [logs]);
 
   const sortedLogs = useMemo(
-    () => [...logs].sort((a, b) => (a.date < b.date ? 1 : -1)),
+    () => [...logs].sort((a, b) => b.timestamp - a.timestamp),
     [logs]
   );
 
   const addLog = () => {
     const trimmed = content.trim();
-    if (!trimmed) return;
-    const item: LogItem = {
+    if (!trimmed || !personId) return;
+    const item: RelationshipLog = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      date: toTimestampLabel(new Date()),
+      personId,
       type,
       content: trimmed,
+      timestamp: Date.now(),
     };
     setLogs((prev) => [item, ...prev]);
     setContent("");
-    setType("LINE");
+    setType("note");
   };
 
   const removeLog = (id: string) => {
@@ -83,6 +75,19 @@ export default function RelationshipLog() {
       ) : null}
 
       <div className="mb-4 rounded-lg border bg-white p-4">
+        <select
+          value={personId}
+          onChange={(e) => setPersonId(e.target.value)}
+          className="mb-2 w-full rounded border p-2 text-sm outline-none focus:border-zinc-500"
+        >
+          <option value="">人物を選択</option>
+          {people.map((person) => (
+            <option key={person.id} value={person.id}>
+              {person.name}
+            </option>
+          ))}
+        </select>
+
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
@@ -93,12 +98,13 @@ export default function RelationshipLog() {
 
         <select
           value={type}
-          onChange={(e) => setType(e.target.value as LogItem["type"])}
+          onChange={(e) => setType(e.target.value as RelationshipLog["type"])}
           className="mb-2 w-full rounded border p-2 text-sm outline-none focus:border-zinc-500"
         >
-          <option value="LINE">LINE</option>
-          <option value="デート">デート</option>
-          <option value="気づき">気づき</option>
+          <option value="line">LINE</option>
+          <option value="date">デート</option>
+          <option value="call">通話</option>
+          <option value="note">メモ</option>
         </select>
 
         <button
@@ -113,7 +119,10 @@ export default function RelationshipLog() {
       <div className="space-y-3">
         {sortedLogs.map((log) => (
           <div key={log.id} className="rounded-lg border bg-white p-3 shadow">
-            <div className="text-xs text-gray-400">{log.date}</div>
+            <div className="text-xs text-gray-400">{toTimestampLabel(log.timestamp)}</div>
+            <div className="text-xs text-gray-500">
+              {people.find((person) => person.id === log.personId)?.name || "不明な人物"}
+            </div>
             <div className="text-sm font-bold">{log.type}</div>
             <div className="mt-1 text-sm">{log.content}</div>
             <button

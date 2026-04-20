@@ -39,6 +39,7 @@ type ConsultThread = {
 };
 
 const LINE_DETAIL_URL = "https://line.me/R/ti/p/@judgecode";
+const LATEST_INPUT_KEY = "judge_latest_input";
 
 /** `/chat?full=1` で相手入力が無いときに相性サマリー用に使うダミー */
 const DEMO_PARTNER_BIRTHDATE = "1995-03-21";
@@ -81,9 +82,19 @@ type LiveAnalysisEntry = {
 
 type RelationshipLogItem = {
   id: string;
-  date: string;
-  type: "LINE" | "デート" | "気づき";
+  personId?: string;
+  timestamp?: number;
+  date?: string;
+  type: "line" | "date" | "call" | "note" | "LINE" | "デート" | "気づき";
   content: string;
+};
+
+type LatestInput = {
+  myBirthDate?: string;
+  myBirthTime?: string;
+  partnerBirthDate?: string;
+  partnerBirthTime?: string;
+  personId?: string;
 };
 
 function buildPhaseMeta(
@@ -335,7 +346,7 @@ function buildStrategyAnalysis(mode: StrategyMode, text: string): StrategyAnalys
 function getLogsFromStorage(): RelationshipLogItem[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = window.localStorage.getItem("judge-code:relationship-logs");
+    const raw = window.localStorage.getItem("judge_relationship_logs");
     if (!raw) return [];
     const parsed = JSON.parse(raw) as RelationshipLogItem[];
     return Array.isArray(parsed) ? parsed : [];
@@ -350,7 +361,19 @@ async function buildStrategyAnalysisViaApi(
 ): Promise<StrategyAnalysis | null> {
   try {
     const meta = buildPhaseMeta(mode, text);
-    const logs = getLogsFromStorage();
+    const logs = getLogsFromStorage().map((item) => ({
+      id: item.id,
+      date:
+        item.date ||
+        new Date(item.timestamp || Date.now()).toISOString().slice(0, 10),
+      type:
+        item.type === "line"
+          ? "LINE"
+          : item.type === "date"
+            ? "デート"
+            : "気づき",
+      content: item.content,
+    }));
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -612,9 +635,20 @@ function ChatPageContent() {
   const isFreeUser = !isFullDemo;
 
   useEffect(() => {
-    const storedBirthdate = sessionStorage.getItem("judge-code:partner-birthdate");
-    const storedBirthtime = sessionStorage.getItem("judge-code:partner-birthtime");
-    const hasStoredPartner = Boolean(storedBirthdate && storedBirthtime);
+    const latestRaw =
+      sessionStorage.getItem(LATEST_INPUT_KEY) ||
+      (typeof window !== "undefined" ? window.localStorage.getItem(LATEST_INPUT_KEY) : null);
+    let latest: LatestInput | null = null;
+    if (latestRaw) {
+      try {
+        latest = JSON.parse(latestRaw) as LatestInput;
+      } catch {
+        latest = null;
+      }
+    }
+    const storedBirthdate = latest?.partnerBirthDate;
+    const storedBirthtime = latest?.partnerBirthTime;
+    const hasStoredPartner = Boolean(storedBirthdate);
 
     if (isFullDemo) {
       const birthdate = storedBirthdate || DEMO_PARTNER_BIRTHDATE;
@@ -627,7 +661,7 @@ function ChatPageContent() {
     }
 
     if (hasStoredPartner) {
-      const partnerProfile = buildPartnerProfile(storedBirthdate!, storedBirthtime!);
+      const partnerProfile = buildPartnerProfile(storedBirthdate!, storedBirthtime || "12:00");
       setPartner(partnerProfile);
       setResult(calculateCompatibility(selfProfile, partnerProfile));
       setMode("diagnosed");

@@ -1,23 +1,32 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getFortuneProfile } from "../../lib/fortune/getFortuneProfile";
 import { normalizeBirthDate } from "../../lib/fortune/normalizeBirthDate";
+import type { Person, Relationship } from "../../lib/people/types";
+import { loadMe, loadPeople, saveMe, savePeople } from "../../lib/people/storage";
 
 const LATEST_INPUT_KEY = "judge_latest_input";
 
 export default function DiagnosisPage() {
   const router = useRouter();
+  const [selfName, setSelfName] = useState("あなた");
   const [selfBirthdate, setSelfBirthdate] = useState("");
   const [selfBirthtime, setSelfBirthtime] = useState("");
-  const [partnerBirthdate, setPartnerBirthdate] = useState("");
-  const [partnerBirthtime, setPartnerBirthtime] = useState("");
+  const [people, setPeople] = useState<Person[]>([]);
+  const [selectedPersonId, setSelectedPersonId] = useState<string>("");
+  const [relationshipType, setRelationshipType] = useState<Relationship["type"]>("love");
   const [didCompleteStep1, setDidCompleteStep1] = useState(false);
   const [showPartnerStep, setShowPartnerStep] = useState(false);
   const myBirthDate = selfBirthdate;
-  const partnerBirthDate = partnerBirthdate;
+  const selectedPerson = useMemo(
+    () => people.find((person) => person.id === selectedPersonId) ?? null,
+    [people, selectedPersonId]
+  );
+  const partnerBirthDate = selectedPerson?.birthDate ?? "";
+  const partnerBirthTime = selectedPerson?.birthTime ?? "";
   const normalizedMyBirthDate = normalizeBirthDate(myBirthDate);
   const normalizedPartnerBirthDate = normalizeBirthDate(partnerBirthDate);
 
@@ -27,12 +36,27 @@ export default function DiagnosisPage() {
         birthTime: selfBirthtime || undefined,
       })
     : null;
-  const partnerProfile = partnerBirthdate
+  const partnerProfile = partnerBirthDate
     ? getFortuneProfile({
-        birthDate: partnerBirthdate,
-        birthTime: partnerBirthtime || undefined,
+        birthDate: partnerBirthDate,
+        birthTime: partnerBirthTime || undefined,
       })
     : null;
+
+  useEffect(() => {
+    const me = loadMe();
+    if (me) {
+      setSelfName(me.name || "あなた");
+      setSelfBirthdate(me.birthDate || "");
+      setSelfBirthtime(me.birthTime || "");
+      if (me.birthDate) setDidCompleteStep1(true);
+    }
+    const storedPeople = loadPeople();
+    setPeople(storedPeople);
+    if (storedPeople.length > 0) {
+      setSelectedPersonId(storedPeople[0].id);
+    }
+  }, []);
 
   console.log("birthDate raw", myBirthDate);
   console.log("birthDate normalized", normalizedMyBirthDate);
@@ -43,6 +67,30 @@ export default function DiagnosisPage() {
   const tendencyComment = myProfile
     ? `干支「${myProfile.kanshi}」と陰陽五行「${myProfile.yinYangGogyo}」の傾向から、${myProfile.koseigaku}として関係を作るタイプです。`
     : "";
+
+  const addPerson = () => {
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const newPerson: Person = {
+      id,
+      name: `新しい相手 ${people.length + 1}`,
+      birthDate: "",
+      birthTime: "",
+      memo: "",
+    };
+    const nextPeople = [newPerson, ...people];
+    setPeople(nextPeople);
+    setSelectedPersonId(id);
+    savePeople(nextPeople);
+  };
+
+  const updateSelectedPerson = (patch: Partial<Person>) => {
+    if (!selectedPersonId) return;
+    const nextPeople = people.map((person) =>
+      person.id === selectedPersonId ? { ...person, ...patch } : person
+    );
+    setPeople(nextPeople);
+    savePeople(nextPeople);
+  };
 
   const scrollToPartnerInput = () => {
     setShowPartnerStep(true);
@@ -55,19 +103,20 @@ export default function DiagnosisPage() {
   const handleStep1Submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!selfBirthdate) return;
-    sessionStorage.setItem("judge-code:self-birthdate", selfBirthdate);
-    sessionStorage.setItem("judge-code:self-birthtime", selfBirthtime);
+    saveMe({
+      name: selfName || "あなた",
+      birthDate: selfBirthdate,
+      birthTime: selfBirthtime || "",
+    });
     setDidCompleteStep1(true);
   };
 
   const handleFinalSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!partnerBirthdate) return;
+    if (!selectedPerson?.birthDate) return;
 
     const selfBirthDate = selfBirthdate;
     const selfBirthTime = selfBirthtime || undefined;
-    const partnerBirthTime = partnerBirthtime || undefined;
-
     try {
       const res = await fetch("/api/diagnosis", {
         method: "POST",
@@ -78,8 +127,8 @@ export default function DiagnosisPage() {
             birthTime: selfBirthTime,
           },
           partner: {
-            birthDate: partnerBirthdate,
-            birthTime: partnerBirthTime,
+            birthDate: selectedPerson.birthDate,
+            birthTime: selectedPerson.birthTime || undefined,
           },
         }),
       });
@@ -97,8 +146,10 @@ export default function DiagnosisPage() {
       JSON.stringify({
         myBirthDate: selfBirthDate,
         myBirthTime: selfBirthtime || "",
-        partnerBirthDate: partnerBirthdate,
-        partnerBirthTime: partnerBirthtime || "",
+        partnerBirthDate: selectedPerson.birthDate,
+        partnerBirthTime: selectedPerson.birthTime || "",
+        personId: selectedPerson.id,
+        relationshipType,
       })
     );
     sessionStorage.setItem(
@@ -106,8 +157,10 @@ export default function DiagnosisPage() {
       JSON.stringify({
         myBirthDate: selfBirthDate,
         myBirthTime: selfBirthtime || "",
-        partnerBirthDate: partnerBirthdate,
-        partnerBirthTime: partnerBirthtime || "",
+        partnerBirthDate: selectedPerson.birthDate,
+        partnerBirthTime: selectedPerson.birthTime || "",
+        personId: selectedPerson.id,
+        relationshipType,
       })
     );
     router.push("/result");
@@ -149,6 +202,18 @@ export default function DiagnosisPage() {
           </p>
 
           <form onSubmit={handleStep1Submit} className="mt-4 space-y-4">
+            <div className="space-y-1.5">
+              <label htmlFor="self-name" className="text-sm font-medium text-zinc-700">
+                あなたの名前
+              </label>
+              <input
+                id="self-name"
+                type="text"
+                value={selfName}
+                onChange={(e) => setSelfName(e.target.value)}
+                className="h-12 w-full rounded-2xl border border-zinc-300 bg-white px-4 text-base text-zinc-950 outline-none transition focus:border-zinc-500 focus:ring-4 focus:ring-zinc-200/70"
+              />
+            </div>
             <div className="space-y-1.5">
               <label htmlFor="self-birthdate" className="text-sm font-medium text-zinc-700">
                 生年月日
@@ -261,33 +326,108 @@ export default function DiagnosisPage() {
             </p>
 
             <form onSubmit={handleFinalSubmit} className="mt-4 space-y-4">
-              <div className="space-y-1.5">
-                <label htmlFor="partner-birthdate" className="text-sm font-medium text-zinc-700">
-                  お相手の生年月日
-                </label>
-                <input
-                  id="partner-birthdate"
-                  type="date"
-                  required
-                  value={partnerBirthdate}
-                  onChange={(e) => setPartnerBirthdate(e.target.value)}
-                  className="h-12 w-full rounded-2xl border border-zinc-300 bg-white px-4 text-base text-zinc-950 outline-none transition focus:border-zinc-500 focus:ring-4 focus:ring-zinc-200/70"
-                />
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-zinc-700">人物一覧</p>
+                  <button
+                    type="button"
+                    onClick={addPerson}
+                    className="rounded-full border border-zinc-300 bg-white px-3 py-1 text-xs font-semibold text-zinc-700"
+                  >
+                    ＋追加
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {people.map((person) => (
+                    <button
+                      key={person.id}
+                      type="button"
+                      onClick={() => setSelectedPersonId(person.id)}
+                      className={`rounded-full border px-3 py-1 text-xs ${
+                        person.id === selectedPersonId
+                          ? "border-zinc-900 bg-zinc-900 text-white"
+                          : "border-zinc-300 bg-white text-zinc-700"
+                      }`}
+                    >
+                      {person.name || "未命名"}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <label htmlFor="partner-birthtime" className="text-sm font-medium text-zinc-700">
-                  お相手の出生時間（任意）
-                </label>
-                <input
-                  id="partner-birthtime"
-                  type="time"
-                  value={partnerBirthtime}
-                  onChange={(e) => setPartnerBirthtime(e.target.value)}
-                  className="h-12 w-full rounded-2xl border border-zinc-300 bg-white px-4 text-base text-zinc-950 outline-none transition focus:border-zinc-500 focus:ring-4 focus:ring-zinc-200/70"
-                />
-              </div>
+              {selectedPerson ? (
+                <>
+                  <div className="space-y-1.5">
+                    <label htmlFor="person-name" className="text-sm font-medium text-zinc-700">
+                      選択中の人物名
+                    </label>
+                    <input
+                      id="person-name"
+                      type="text"
+                      value={selectedPerson.name}
+                      onChange={(e) => updateSelectedPerson({ name: e.target.value })}
+                      className="h-12 w-full rounded-2xl border border-zinc-300 bg-white px-4 text-base text-zinc-950 outline-none transition focus:border-zinc-500 focus:ring-4 focus:ring-zinc-200/70"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label htmlFor="partner-birthdate" className="text-sm font-medium text-zinc-700">
+                      生年月日
+                    </label>
+                    <input
+                      id="partner-birthdate"
+                      type="date"
+                      required
+                      value={selectedPerson.birthDate || ""}
+                      onChange={(e) => updateSelectedPerson({ birthDate: e.target.value })}
+                      className="h-12 w-full rounded-2xl border border-zinc-300 bg-white px-4 text-base text-zinc-950 outline-none transition focus:border-zinc-500 focus:ring-4 focus:ring-zinc-200/70"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label htmlFor="partner-birthtime" className="text-sm font-medium text-zinc-700">
+                      出生時間（任意）
+                    </label>
+                    <input
+                      id="partner-birthtime"
+                      type="time"
+                      value={selectedPerson.birthTime || ""}
+                      onChange={(e) => updateSelectedPerson({ birthTime: e.target.value })}
+                      className="h-12 w-full rounded-2xl border border-zinc-300 bg-white px-4 text-base text-zinc-950 outline-none transition focus:border-zinc-500 focus:ring-4 focus:ring-zinc-200/70"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label htmlFor="person-memo" className="text-sm font-medium text-zinc-700">
+                      メモ（任意）
+                    </label>
+                    <textarea
+                      id="person-memo"
+                      rows={3}
+                      value={selectedPerson.memo || ""}
+                      onChange={(e) => updateSelectedPerson({ memo: e.target.value })}
+                      className="w-full rounded-2xl border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-950 outline-none transition focus:border-zinc-500 focus:ring-4 focus:ring-zinc-200/70"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label htmlFor="relationship-type" className="text-sm font-medium text-zinc-700">
+                      関係タイプ
+                    </label>
+                    <select
+                      id="relationship-type"
+                      value={relationshipType}
+                      onChange={(e) => setRelationshipType(e.target.value as Relationship["type"])}
+                      className="h-12 w-full rounded-2xl border border-zinc-300 bg-white px-4 text-base text-zinc-950 outline-none transition focus:border-zinc-500 focus:ring-4 focus:ring-zinc-200/70"
+                    >
+                      <option value="love">恋愛</option>
+                      <option value="work">仕事</option>
+                      <option value="friend">友人</option>
+                      <option value="family">家族</option>
+                    </select>
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-zinc-600">「＋追加」で人物を作成してください。</p>
+              )}
               <button
                 type="submit"
+                disabled={!selectedPerson?.birthDate}
                 className="inline-flex h-12 w-full items-center justify-center rounded-full bg-zinc-950 px-6 text-sm font-semibold text-white transition hover:bg-zinc-800"
               >
                 STEP4: 診断結果を見る

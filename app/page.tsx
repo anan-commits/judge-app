@@ -107,7 +107,6 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-[#f7f7f5] text-zinc-900">
-      <div style={{ background: "red", color: "white" }}>TOP CARD DEBUG</div>
       <header className="border-b border-zinc-200/80 bg-white">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6 md:px-10">
           <div className="flex items-center gap-4">
