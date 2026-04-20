@@ -199,14 +199,18 @@ function RelationshipEssenceSection({
     >
       <div className="mx-auto max-w-6xl px-5 py-8 sm:px-8 md:px-10 md:py-10">
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-900/65">
-          いまの関係を、一文のストーリーで読み解く
+          関係の本質
         </p>
         <h2
           id="relationship-conversion-heading"
           className="mt-2 text-base font-semibold leading-snug text-amber-950 sm:text-lg"
         >
-          関係性 → あなたの動き → その先のリスクまで、先に可視化します
+          この関係は相性だけで判断すると損をします
         </h2>
+        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-amber-950/90 sm:text-[15px]">
+          土台のズレはあります。ですが、運気・タイミング・行動設計で補正できる余地もあります。
+          Judge Codeはその改善ルートまで可視化します。
+        </p>
         <StoryFlowBlock essence={essence} tendency={tendency} neglectRisk={neglectRisk} />
         {isFreeUser ? (
           <div className="mt-6 max-w-2xl space-y-4">
@@ -227,6 +231,9 @@ function ThreeLayerScoreSection() {
       <h2 className="mt-2 text-lg font-semibold leading-snug text-zinc-950 sm:text-xl">
         相性は「先天」だけでなく、補正と実行で伸ばせます
       </h2>
+      <p className="mt-2 text-sm leading-relaxed text-zinc-600">
+        悪い相性で終わらせず、どこを変えれば伸びるかまで見るのがJudge Codeです。
+      </p>
       <div className="mt-5 grid gap-3 md:grid-cols-3">
         <article className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">先天相性</p>
