@@ -11,6 +11,7 @@ import {
 } from "../lib/compatibility";
 import { loadPeople, loadRelationshipLogs, saveRelationshipLogs } from "../../lib/people/storage";
 import type { Person, Relationship, RelationshipLog } from "../../lib/people/types";
+import { detectRelationshipPhase } from "../../lib/relationship/phase";
 
 const selfProfile: PersonProfile = {
   birthdate: "1992-11-08",
@@ -790,6 +791,10 @@ function ChatPageContent() {
         .sort((a, b) => b.timestamp - a.timestamp),
     [relationshipLogs, currentPersonId]
   );
+  const phaseSummary = useMemo(
+    () => detectRelationshipPhase(currentPersonLogs),
+    [currentPersonLogs]
+  );
 
   const summaryTags = useMemo(() => {
     if (!result) return [];
@@ -932,6 +937,11 @@ function ChatPageContent() {
                   ))}
                 </div>
               ) : null}
+              <div className="mt-3 rounded-xl bg-black p-4 text-white">
+                <div className="text-sm opacity-70">関係フェーズ</div>
+                <div className="text-xl font-bold">{phaseSummary.phase}</div>
+                <div className="mt-1 text-sm">{phaseSummary.reason}</div>
+              </div>
               <div className="mt-2 flex flex-wrap gap-2">
                 {summaryTags.map((tag) => (
                   <span
