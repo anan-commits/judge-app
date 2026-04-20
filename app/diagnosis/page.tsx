@@ -49,7 +49,7 @@ export default function DiagnosisPage() {
   const scrollToPartnerInput = () => {
     setShowPartnerStep(true);
     setTimeout(() => {
-      const target = document.getElementById("partner-step");
+      const target = document.getElementById("partner-section");
       target?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 0);
   };
@@ -176,7 +176,7 @@ export default function DiagnosisPage() {
         ) : null}
 
         {didCompleteStep1 && showPartnerStep ? (
-          <article id="partner-step" className="mt-5 rounded-3xl border border-zinc-200/90 bg-white p-4 shadow-sm">
+          <article id="partner-section" className="mt-5 rounded-3xl border border-zinc-200/90 bg-white p-4 shadow-sm">
             <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-500">
               STEP3
             </p>
