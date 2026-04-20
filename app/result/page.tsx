@@ -11,20 +11,57 @@ import {
 } from "../lib/compatibility";
 
 type RelationshipConversionPattern = {
-  essence: string
-  tendency: string
-  neglectRisk: string
-  tease: string
-}
+  essence: string;
+  tendency: string;
+  neglectRisk: string;
+  tease: string;
+};
 
 const RELATIONSHIP_CONVERSION_PATTERNS: RelationshipConversionPattern[] = [
   {
-    essence: "この関係は、近づくほど温度差が出やすい関係です",
-    tendency: "あなたはその中で、相手の反応に合わせすぎる傾向があります",
-    neglectRisk: "その結果、気づかないうちに主導権を失いやすいです",
-    tease: "この関係で一番重要なのは『距離の取り方』です"
-  }
-]
+    essence: "この2人は、近づくほど気持ちの温度差が見えやすい関係です。",
+    tendency:
+      "その中であなたは、相手に合わせて動きすぎて、自分の軸を後回しにしやすいです。",
+    neglectRisk:
+      "このまま放置すると、あなたが我慢するほど関係の主導権を失い、気づかないうちに距離が固定化しやすくなります。",
+    tease:
+      "改善の鍵は、相手の反応を待つ前にあなたの伝え方を1段階切り替えることです。ここを外すと努力が逆効果になりやすいです。",
+  },
+  {
+    essence: "この2人は、表面は穏やかでも本音のズレが蓄積しやすい関係です。",
+    tendency:
+      "その中であなたは、空気を壊さないように本音を飲み込み、様子見を長引かせやすいです。",
+    neglectRisk:
+      "この状態を続けると、話し合う前に相手の中で結論だけが進み、あなたが気づいた時には修復コストが大きくなりやすいです。",
+    tease:
+      "実は、切り出すタイミングには失敗しにくい運気帯があります。そこを外さずに動けるかで結果が変わります。",
+  },
+  {
+    essence: "この2人は、好意が強いほど踏み込み量の差が出やすい関係です。",
+    tendency:
+      "その中であなたは、誤解を避けようとして説明を重ね、連絡頻度を上げすぎやすいです。",
+    neglectRisk:
+      "この流れを放置すると、あなたの誠実さが相手には圧として届き、返答が遅れるほど関係が冷えやすくなります。",
+    tease:
+      "突破口は『連絡回数』ではなく『1通目の設計』にあります。たった一行の違いで相手の反応は大きく変わります。",
+  },
+];
+
+type ThreeLayerModel = {
+  innateScore: number;
+  correctionPotential: number;
+  reachableLabel: string;
+  correctionHint: string;
+  reachableHint: string;
+};
+
+const THREE_LAYER_MODEL_DUMMY: ThreeLayerModel = {
+  innateScore: 62,
+  correctionPotential: 28,
+  reachableLabel: "90点以上",
+  correctionHint: "連絡頻度と感情表現の順番で改善余地あり",
+  reachableHint: "今月の運気タイミングを使えば大きく伸ばせる",
+};
 
 const selfProfile: PersonProfile = {
   birthdate: "1992-11-08",
@@ -95,6 +132,57 @@ function pickStoryPatternIndex(partnerBirthdate: string | undefined): number {
   return (seeded + jitter) % RELATIONSHIP_CONVERSION_PATTERNS.length;
 }
 
+function StoryFlowBlock({
+  essence,
+  tendency,
+  neglectRisk,
+}: Pick<RelationshipConversionPattern, "essence" | "tendency" | "neglectRisk">) {
+  return (
+    <div className="mt-6 max-w-2xl space-y-6 border-l-2 border-amber-200/90 pl-4 sm:pl-5">
+      <div>
+        <p className="text-[11px] font-semibold tracking-wide text-amber-900/75">関係性</p>
+        <p className="mt-1.5 text-sm leading-[1.75] text-amber-950 sm:text-[15px]">{essence}</p>
+      </div>
+      <div>
+        <p className="text-[11px] font-semibold tracking-wide text-amber-900/75">その中でのあなた</p>
+        <p className="mt-1.5 text-sm leading-[1.75] text-amber-950 sm:text-[15px]">{tendency}</p>
+      </div>
+      <div role="note" className="rounded-r-xl border-l-4 border-red-600 bg-red-50/95 py-3 pl-4 pr-3 shadow-sm sm:py-4 sm:pl-5">
+        <p className="text-[11px] font-bold tracking-wide text-red-900">その結果（放置リスク）</p>
+        <p className="mt-2 text-sm font-semibold leading-[1.75] text-red-950 sm:text-[15px]">{neglectRisk}</p>
+      </div>
+    </div>
+  );
+}
+
+function TeaseBlock({ tease }: { tease: string }) {
+  return (
+    <div className="space-y-4 border-t border-dashed border-amber-300/70 pt-6">
+      <div>
+        <p className="text-[11px] font-semibold tracking-wide text-amber-900/80">続きの核心（プレビュー）</p>
+        <p aria-hidden className="mt-2 select-none text-sm leading-[1.75] text-amber-950/90 blur-[3.5px] sm:text-[15px]">
+          {tease}
+        </p>
+        <p className="sr-only">{tease}</p>
+      </div>
+    </div>
+  );
+}
+
+function PaidCta({ patternIndex }: { patternIndex: number }) {
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        console.log("[paywall] 続きを見る ¥980", { patternIndex });
+      }}
+      className="inline-flex h-12 min-h-[48px] w-full max-w-md items-center justify-center rounded-full bg-zinc-900 px-6 text-sm font-semibold text-white shadow-md transition hover:bg-zinc-800"
+    >
+      続きを見る（¥980）
+    </button>
+  );
+}
+
 function RelationshipEssenceSection({
   partnerBirthdate,
   isFreeUser,
@@ -117,74 +205,44 @@ function RelationshipEssenceSection({
           id="relationship-conversion-heading"
           className="mt-2 text-base font-semibold leading-snug text-amber-950 sm:text-lg"
         >
-          関係性 → あなたの動き → その先に待っている落とし穴
+          関係性 → あなたの動き → その先のリスクまで、先に可視化します
         </h2>
-        <div className="mt-4 space-y-3">
-  <p className="text-base font-semibold text-zinc-900">
-    {essence}
-  </p>
-
-  <p className="text-sm text-zinc-700">
-    {tendency}
-  </p>
-
-  <p className="text-sm font-semibold text-red-600">
-    {neglectRisk}
-  </p>
-
-  <p className="text-sm text-zinc-500">
-    {tease}
-  </p>
-</div>
-        <div className="mt-6 max-w-2xl space-y-6 border-l-2 border-amber-200/90 pl-4 sm:pl-5">
-          <div>
-            <p className="text-[11px] font-semibold tracking-wide text-amber-900/75">関係性</p>
-            <p className="mt-1.5 text-sm font-normal leading-[1.75] text-amber-950 sm:text-[15px]">
-              {essence}
-            </p>
+        <StoryFlowBlock essence={essence} tendency={tendency} neglectRisk={neglectRisk} />
+        {isFreeUser ? (
+          <div className="mt-6 max-w-2xl space-y-4">
+            <TeaseBlock tease={tease} />
+            <PaidCta patternIndex={patternIndex} />
           </div>
-          <div>
-            <p className="text-[11px] font-semibold tracking-wide text-amber-900/75">その中でのあなた</p>
-            <p className="mt-1.5 text-sm font-normal leading-[1.75] text-amber-950 sm:text-[15px]">
-              {tendency}
-            </p>
-          </div>
-          <div
-            role="note"
-            className="rounded-r-xl border-l-4 border-red-600 bg-red-50/95 py-3 pl-4 pr-3 shadow-sm sm:py-4 sm:pl-5"
-          >
-            <p className="text-[11px] font-bold tracking-wide text-red-900">その結果（放置リスク）</p>
-            <p className="mt-2 text-sm font-semibold leading-[1.75] text-red-950 sm:text-[15px]">
-              {neglectRisk}
-            </p>
-          </div>
+        ) : null}
+      </div>
+    </section>
+  );
+}
 
-          {isFreeUser ? (
-            <div className="space-y-4 border-t border-dashed border-amber-300/70 pt-6">
-              <div>
-                <p className="text-[11px] font-semibold tracking-wide text-amber-900/80">
-                  続きの核心（プレビュー）
-                </p>
-                <p
-                  aria-hidden
-                  className="mt-2 select-none text-sm leading-[1.75] text-amber-950/90 blur-[3.5px] sm:text-[15px]"
-                >
-                  {tease}
-                </p>
-                <p className="sr-only">{tease}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  console.log("[paywall] 続きを見る ¥980", { patternIndex });
-                }}
-                className="inline-flex h-12 min-h-[48px] w-full max-w-md items-center justify-center rounded-full bg-zinc-900 px-6 text-sm font-semibold text-white shadow-md transition hover:bg-zinc-800"
-              >
-                続きを見る（¥980）
-              </button>
-            </div>
-          ) : null}
-        </div>
+function ThreeLayerScoreSection() {
+  const model = THREE_LAYER_MODEL_DUMMY;
+  return (
+    <section className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)] sm:p-6 md:rounded-3xl md:p-7">
+      <p className="text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">3層相性モデル</p>
+      <h2 className="mt-2 text-lg font-semibold leading-snug text-zinc-950 sm:text-xl">
+        相性は「先天」だけでなく、補正と実行で伸ばせます
+      </h2>
+      <div className="mt-5 grid gap-3 md:grid-cols-3">
+        <article className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">先天相性</p>
+          <p className="mt-2 text-3xl font-semibold tracking-tight text-zinc-900">{model.innateScore}</p>
+          <p className="mt-1 text-xs leading-relaxed text-zinc-600">生まれ持った噛み合わせ（現在地）</p>
+        </article>
+        <article className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-700">補正可能性</p>
+          <p className="mt-2 text-3xl font-semibold tracking-tight text-emerald-900">+{model.correctionPotential}</p>
+          <p className="mt-1 text-xs leading-relaxed text-emerald-800/90">{model.correctionHint}</p>
+        </article>
+        <article className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-800">実行到達点</p>
+          <p className="mt-2 text-3xl font-semibold tracking-tight text-amber-950">{model.reachableLabel}</p>
+          <p className="mt-1 text-xs leading-relaxed text-amber-900/90">{model.reachableHint}</p>
+        </article>
       </div>
     </section>
   );
@@ -387,7 +445,9 @@ function ResultPageContent() {
       </section>
 
       <section className="mx-auto max-w-6xl px-6 py-10 md:px-10 md:py-14">
-        <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)] sm:p-6 md:rounded-3xl md:p-7">
+        <ThreeLayerScoreSection />
+
+        <div className="mt-6 rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)] sm:p-6 md:rounded-3xl md:p-7">
           <p className="text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">相性サマリー</p>
           <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:gap-8">
             <div>
