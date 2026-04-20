@@ -62,6 +62,22 @@ function buildDisplayProfile(base: PersonProfile) {
   };
 }
 
+function ResultPersonHeader({ label, initial }: { label: string; initial: string }) {
+  return (
+    <div className="flex min-w-0 flex-1 flex-col items-center gap-2.5 rounded-2xl border border-zinc-200/90 bg-white px-2 py-4 shadow-sm sm:gap-3 sm:px-3 sm:py-5">
+      <div
+        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-base font-semibold text-zinc-700 ring-1 ring-zinc-200/80 sm:h-14 sm:w-14 sm:text-lg"
+        aria-hidden
+      >
+        {initial}
+      </div>
+      <p className="max-w-full truncate text-center text-sm font-semibold leading-tight text-zinc-900 sm:text-base">
+        {label}
+      </p>
+    </div>
+  );
+}
+
 export default function ResultPage() {
   const router = useRouter();
   const [saved, setSaved] = useState(false);
@@ -164,29 +180,66 @@ export default function ResultPage() {
       </section>
 
       <section className="mx-auto max-w-6xl px-6 py-10 md:px-10 md:py-14">
-        <div className="grid gap-5 md:grid-cols-2">
-          <article className="rounded-3xl border border-zinc-200/90 bg-white p-7 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
-            <p className="text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">あなた</p>
-            <div className="mt-4 space-y-2 text-sm text-zinc-700">
-              <p>生年月日: <span className="font-semibold text-zinc-900">{selfDisplay.birthdate}</span></p>
-              <p>出生時間: <span className="font-semibold text-zinc-900">{selfDisplay.birthtime}</span></p>
-              <p>日柱天干: <span className="font-semibold text-zinc-900">{selfDisplay.dayStem}</span></p>
-              <p>五行: <span className="font-semibold text-zinc-900">{selfDisplay.fiveElement}</span></p>
-              <p>九星気学: <span className="font-semibold text-zinc-900">{selfDisplay.nineStar}</span></p>
-              <p>個性学: <span className="font-semibold text-zinc-900">{selfDisplay.personality}</span></p>
-              <p>吉方位: <span className="font-semibold text-zinc-900">{selfDisplay.luckyDirection}</span></p>
+        <div className="flex gap-3 sm:gap-4" role="group" aria-label="診断対象">
+          <ResultPersonHeader label="あなた" initial="あ" />
+          <ResultPersonHeader label="相手" initial="相" />
+        </div>
+
+        <div className="mt-6 grid grid-cols-1 gap-6 md:mt-8 md:grid-cols-2 md:gap-5">
+          <article className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)] sm:p-6 md:rounded-3xl md:p-7">
+            <p className="text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">あなたの占術ステータス</p>
+            <div className="mt-4 space-y-2.5 text-sm leading-relaxed text-zinc-700">
+              <p>
+                生年月日: <span className="font-semibold text-zinc-900">{selfDisplay.birthdate}</span>
+              </p>
+              <p>
+                出生時間: <span className="font-semibold text-zinc-900">{selfDisplay.birthtime}</span>
+              </p>
+              <p>
+                日柱天干: <span className="font-semibold text-zinc-900">{selfDisplay.dayStem}</span>
+              </p>
+              <p>
+                五行: <span className="font-semibold text-zinc-900">{selfDisplay.fiveElement}</span>
+              </p>
+              <p>
+                九星気学: <span className="font-semibold text-zinc-900">{selfDisplay.nineStar}</span>
+              </p>
+              <p>
+                個性学: <span className="font-semibold text-zinc-900">{selfDisplay.personality}</span>
+              </p>
+              <p>
+                吉方位: <span className="font-semibold text-zinc-900">{selfDisplay.luckyDirection}</span>
+              </p>
             </div>
           </article>
-          <article className="rounded-3xl border border-zinc-200/90 bg-white p-7 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
-            <p className="text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">相手</p>
-            <div className="mt-4 space-y-2 text-sm text-zinc-700">
-              <p>生年月日: <span className="font-semibold text-zinc-900">{partnerDisplay?.birthdate ?? "-"}</span></p>
-              <p>出生時間: <span className="font-semibold text-zinc-900">{partnerDisplay?.birthtime ?? "-"}</span></p>
-              <p>日柱天干: <span className="font-semibold text-zinc-900">{partnerDisplay?.dayStem ?? "-"}</span></p>
-              <p>五行: <span className="font-semibold text-zinc-900">{partnerDisplay?.fiveElement ?? "-"}</span></p>
-              <p>九星気学: <span className="font-semibold text-zinc-900">{partnerDisplay?.nineStar ?? "-"}</span></p>
-              <p>個性学: <span className="font-semibold text-zinc-900">{partnerDisplay?.personality ?? "-"}</span></p>
-              <p>吉方位: <span className="font-semibold text-zinc-900">{partnerDisplay?.luckyDirection ?? "-"}</span></p>
+          <article className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)] sm:p-6 md:rounded-3xl md:p-7">
+            <p className="text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">相手の占術ステータス</p>
+            <div className="mt-4 space-y-2.5 text-sm leading-relaxed text-zinc-700">
+              <p>
+                生年月日:{" "}
+                <span className="font-semibold text-zinc-900">{partnerDisplay?.birthdate ?? "-"}</span>
+              </p>
+              <p>
+                出生時間:{" "}
+                <span className="font-semibold text-zinc-900">{partnerDisplay?.birthtime ?? "-"}</span>
+              </p>
+              <p>
+                日柱天干: <span className="font-semibold text-zinc-900">{partnerDisplay?.dayStem ?? "-"}</span>
+              </p>
+              <p>
+                五行: <span className="font-semibold text-zinc-900">{partnerDisplay?.fiveElement ?? "-"}</span>
+              </p>
+              <p>
+                九星気学: <span className="font-semibold text-zinc-900">{partnerDisplay?.nineStar ?? "-"}</span>
+              </p>
+              <p>
+                個性学:{" "}
+                <span className="font-semibold text-zinc-900">{partnerDisplay?.personality ?? "-"}</span>
+              </p>
+              <p>
+                吉方位:{" "}
+                <span className="font-semibold text-zinc-900">{partnerDisplay?.luckyDirection ?? "-"}</span>
+              </p>
             </div>
           </article>
         </div>
