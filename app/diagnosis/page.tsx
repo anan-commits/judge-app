@@ -6,7 +6,16 @@ import { useRouter } from "next/navigation";
 import { getFortuneProfile } from "../../lib/fortune/getFortuneProfile";
 import { normalizeBirthDate } from "../../lib/fortune/normalizeBirthDate";
 import type { Person, Relationship } from "../../lib/people/types";
-import { loadMe, loadPeople, saveMe, savePeople } from "../../lib/people/storage";
+import {
+  isAuthenticated,
+  loadMeProfile,
+  loadPeopleByUser,
+  saveMeProfile,
+  savePeopleByUser,
+} from "../../lib/people/storage";
+import type { Gender } from "../../lib/auth/types";
+import { getGenderColor, getGenderLabel } from "../../lib/ui/gender";
+import AuthAction from "../../components/AuthAction";
 
 const LATEST_INPUT_KEY = "judge_latest_input";
 const relationshipLabelMap: Record<Relationship["type"], string> = {
@@ -21,11 +30,13 @@ export default function DiagnosisPage() {
   const [selfName, setSelfName] = useState("あなた");
   const [selfBirthdate, setSelfBirthdate] = useState("");
   const [selfBirthtime, setSelfBirthtime] = useState("");
+  const [selfGender, setSelfGender] = useState<Gender | undefined>(undefined);
   const [people, setPeople] = useState<Person[]>([]);
   const [selectedPersonId, setSelectedPersonId] = useState<string>("");
   const [relationshipType, setRelationshipType] = useState<Relationship["type"]>("love");
   const [didCompleteStep1, setDidCompleteStep1] = useState(false);
   const [showPartnerStep, setShowPartnerStep] = useState(false);
+  const [canSaveData, setCanSaveData] = useState(false);
   const myBirthDate = selfBirthdate;
   const selectedPerson = useMemo(
     () => people.find((person) => person.id === selectedPersonId) ?? null,
@@ -50,18 +61,23 @@ export default function DiagnosisPage() {
     : null;
 
   useEffect(() => {
-    const me = loadMe();
-    if (me) {
-      setSelfName(me.name || "あなた");
-      setSelfBirthdate(me.birthDate || "");
-      setSelfBirthtime(me.birthTime || "");
-      if (me.birthDate) setDidCompleteStep1(true);
-    }
-    const storedPeople = loadPeople();
-    setPeople(storedPeople);
-    if (storedPeople.length > 0) {
-      setSelectedPersonId(storedPeople[0].id);
-    }
+    void (async () => {
+      const me = await loadMeProfile();
+      if (me) {
+        setSelfName(me.name || "あなた");
+        setSelfBirthdate(me.birthDate || "");
+        setSelfBirthtime(me.birthTime || "");
+        setSelfGender(me.gender);
+        if (me.birthDate) setDidCompleteStep1(true);
+      }
+      const auth = await isAuthenticated();
+      setCanSaveData(auth);
+      const storedPeople = await loadPeopleByUser();
+      setPeople(storedPeople);
+      if (storedPeople.length > 0) {
+        setSelectedPersonId(storedPeople[0].id);
+      }
+    })();
   }, []);
 
   console.log("birthDate raw", myBirthDate);
@@ -79,6 +95,7 @@ export default function DiagnosisPage() {
   }）`;
 
   const addPerson = () => {
+    if (!canSaveData) return;
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const newPerson: Person = {
       id,
@@ -90,16 +107,17 @@ export default function DiagnosisPage() {
     const nextPeople = [newPerson, ...people];
     setPeople(nextPeople);
     setSelectedPersonId(id);
-    savePeople(nextPeople);
+    void savePeopleByUser(nextPeople);
   };
 
   const updateSelectedPerson = (patch: Partial<Person>) => {
     if (!selectedPersonId) return;
+    if (!canSaveData) return;
     const nextPeople = people.map((person) =>
       person.id === selectedPersonId ? { ...person, ...patch } : person
     );
     setPeople(nextPeople);
-    savePeople(nextPeople);
+    void savePeopleByUser(nextPeople);
   };
 
   const scrollToPartnerInput = () => {
@@ -113,11 +131,15 @@ export default function DiagnosisPage() {
   const handleStep1Submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!selfBirthdate) return;
-    saveMe({
-      name: selfName || "あなた",
-      birthDate: selfBirthdate,
-      birthTime: selfBirthtime || "",
-    });
+    if (canSaveData) {
+      void saveMeProfile({
+        id: "self",
+        name: selfName || "あなた",
+        birthDate: selfBirthdate,
+        birthTime: selfBirthtime || "",
+        gender: selfGender,
+      });
+    }
     setDidCompleteStep1(true);
   };
 
@@ -183,7 +205,10 @@ export default function DiagnosisPage() {
           <a href="/" className="text-xs font-semibold tracking-[0.18em] text-zinc-900">
             JUDGE CODE
           </a>
-          <span className="text-[11px] font-medium tracking-wide text-zinc-500">人間関係診断</span>
+          <div className="flex items-center gap-3">
+            <span className="text-[11px] font-medium tracking-wide text-zinc-500">人間関係診断</span>
+            <AuthAction />
+          </div>
         </div>
       </header>
 
@@ -223,6 +248,38 @@ export default function DiagnosisPage() {
                 onChange={(e) => setSelfName(e.target.value)}
                 className="h-12 w-full rounded-2xl border border-zinc-300 bg-white px-4 text-base text-zinc-950 outline-none transition focus:border-zinc-500 focus:ring-4 focus:ring-zinc-200/70"
               />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-zinc-700">性別</label>
+              <div className="flex gap-2 text-sm">
+                <button
+                  type="button"
+                  onClick={() => setSelfGender("male")}
+                  className={`rounded-full px-3 py-1 ${
+                    selfGender === "male" ? "bg-blue-100 text-blue-600" : "bg-zinc-100 text-zinc-600"
+                  }`}
+                >
+                  男性
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelfGender("female")}
+                  className={`rounded-full px-3 py-1 ${
+                    selfGender === "female" ? "bg-pink-100 text-pink-600" : "bg-zinc-100 text-zinc-600"
+                  }`}
+                >
+                  女性
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelfGender("other")}
+                  className={`rounded-full px-3 py-1 ${
+                    selfGender === "other" ? "bg-green-100 text-green-600" : "bg-zinc-100 text-zinc-600"
+                  }`}
+                >
+                  その他
+                </button>
+              </div>
             </div>
             <div className="space-y-1.5">
               <label htmlFor="self-birthdate" className="text-sm font-medium text-zinc-700">
@@ -297,6 +354,11 @@ export default function DiagnosisPage() {
 
         {didCompleteStep1 && showPartnerStep ? (
           <article id="partner-section" className="mt-5 rounded-3xl border border-zinc-200/90 bg-white p-4 shadow-sm">
+            {!canSaveData ? (
+              <p className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                この内容を保存するにはログインしてください。
+              </p>
+            ) : null}
             <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-500">
               STEP3
             </p>
@@ -307,7 +369,19 @@ export default function DiagnosisPage() {
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div className="rounded-xl border border-zinc-200 bg-white p-4">
-                <h4 className="text-base font-bold text-zinc-900">{selfCardTitle}</h4>
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`flex h-10 w-10 items-center justify-center rounded-full ${getGenderColor(
+                      selfGender
+                    )}`}
+                  >
+                    👤
+                  </div>
+                  <div>
+                    <h4 className="text-base font-bold text-zinc-900">{selfCardTitle}</h4>
+                    <p className="text-xs text-zinc-500">{getGenderLabel(selfGender)}</p>
+                  </div>
+                </div>
                 <div className="mt-3 space-y-1 text-sm text-gray-700">
                   {myProfile ? (
                     <>

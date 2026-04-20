@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getFortuneProfile } from "../lib/fortune/getFortuneProfile";
+import { loadMeProfile } from "../lib/people/storage";
+import { getGenderColor, getGenderLabel } from "../lib/ui/gender";
+import AuthAction from "../components/AuthAction";
 
 const LATEST_INPUT_KEY = "judge_latest_input";
 
@@ -15,8 +18,15 @@ type LatestInput = {
 
 export default function Home() {
   const [latestInput, setLatestInput] = useState<LatestInput | null>(null);
+  const [profile, setProfile] = useState<{ name: string; gender?: "male" | "female" | "other" } | null>(null);
 
   useEffect(() => {
+    void (async () => {
+      const me = await loadMeProfile();
+      if (me?.name) {
+        setProfile({ name: me.name, gender: me.gender });
+      }
+    })();
     try {
       const raw = localStorage.getItem(LATEST_INPUT_KEY);
       if (!raw) {
@@ -118,13 +128,29 @@ export default function Home() {
               関係ログを見る
             </Link>
           </div>
-          <a href="/chat" className="text-xs font-medium text-zinc-600 hover:text-zinc-900">
-            相談ルームへ
-          </a>
+          <div className="flex items-center gap-3">
+            <a href="/chat" className="text-xs font-medium text-zinc-600 hover:text-zinc-900">
+              相談ルームへ
+            </a>
+            <AuthAction />
+          </div>
         </div>
       </header>
 
       <section className="mx-auto max-w-6xl space-y-5 px-4 py-6 md:px-10 md:py-8">
+        {profile ? (
+          <section className="rounded-3xl border border-zinc-200/90 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)] md:p-6">
+            <div className="flex items-center gap-3">
+              <div className={`flex h-12 w-12 items-center justify-center rounded-full ${getGenderColor(profile.gender)}`}>
+                👤
+              </div>
+              <div>
+                <div className="font-bold">{profile.name}</div>
+                <div className="text-sm text-gray-500">{getGenderLabel(profile.gender)}</div>
+              </div>
+            </div>
+          </section>
+        ) : null}
         <div className="grid gap-5 md:grid-cols-2">
           {statuses.map((person) => (
             <article

@@ -1,3 +1,5 @@
+import type { MeProfile } from "../auth/types";
+
 export type Person = {
   id: string;
   name: string;
@@ -11,11 +13,7 @@ export type Relationship = {
   type: "love" | "work" | "friend" | "family";
 };
 
-export type Me = {
-  name: string;
-  birthDate?: string;
-  birthTime?: string;
-};
+export type Me = MeProfile;
 
 export type RelationshipLog = {
   id: string;

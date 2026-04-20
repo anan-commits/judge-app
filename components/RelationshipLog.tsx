@@ -2,7 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { Person, RelationshipLog } from "../lib/people/types";
-import { loadPeople, loadRelationshipLogs, saveRelationshipLogs } from "../lib/people/storage";
+import {
+  isAuthenticated,
+  loadPeopleByUser,
+  loadRelationshipLogsByUser,
+  saveRelationshipLogsByUser,
+} from "../lib/people/storage";
 
 function toTimestampLabel(timestamp: number): string {
   return new Date(timestamp).toLocaleString("ja-JP", {
@@ -20,18 +25,24 @@ export default function RelationshipLog() {
   const [personId, setPersonId] = useState("");
   const [content, setContent] = useState("");
   const [type, setType] = useState<RelationshipLog["type"]>("note");
+  const [canSave, setCanSave] = useState(false);
 
   useEffect(() => {
-    const loadedPeople = loadPeople();
-    setPeople(loadedPeople);
-    if (loadedPeople.length > 0) {
-      setPersonId(loadedPeople[0].id);
-    }
-    setLogs(loadRelationshipLogs());
+    void (async () => {
+      const auth = await isAuthenticated();
+      setCanSave(auth);
+      const loadedPeople = await loadPeopleByUser();
+      setPeople(loadedPeople);
+      if (loadedPeople.length > 0) {
+        setPersonId(loadedPeople[0].id);
+      }
+      setLogs(await loadRelationshipLogsByUser());
+    })();
   }, []);
 
   useEffect(() => {
-    saveRelationshipLogs(logs);
+    if (!canSave) return;
+    void saveRelationshipLogsByUser(logs);
   }, [logs]);
 
   const sortedLogs = useMemo(
@@ -40,6 +51,7 @@ export default function RelationshipLog() {
   );
 
   const addLog = () => {
+    if (!canSave) return;
     const trimmed = content.trim();
     if (!trimmed || !personId) return;
     const item: RelationshipLog = {
@@ -65,6 +77,11 @@ export default function RelationshipLog() {
           この記録が増えるほど、分析精度が上がります。
         </p>
       </div>
+      {!canSave ? (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3">
+          <p className="text-sm text-amber-800">この内容を保存するにはログインしてください。</p>
+        </div>
+      ) : null}
 
       {logs.length > 5 ? (
         <div className="mb-4 rounded border bg-green-50 p-3">
@@ -110,6 +127,7 @@ export default function RelationshipLog() {
         <button
           type="button"
           onClick={addLog}
+          disabled={!canSave}
           className="w-full rounded bg-blue-500 py-2 text-sm font-semibold text-white hover:bg-blue-600"
         >
           記録する

@@ -9,9 +9,15 @@ import {
   type CompatibilityResult,
   type PersonProfile,
 } from "../lib/compatibility";
-import { loadPeople, loadRelationshipLogs, saveRelationshipLogs } from "../../lib/people/storage";
+import {
+  isAuthenticated,
+  loadPeopleByUser,
+  loadRelationshipLogsByUser,
+  saveRelationshipLogsByUser,
+} from "../../lib/people/storage";
 import type { Person, Relationship, RelationshipLog } from "../../lib/people/types";
 import { detectRelationshipPhase } from "../../lib/relationship/phase";
+import AuthAction from "../../components/AuthAction";
 
 const selfProfile: PersonProfile = {
   birthdate: "1992-11-08",
@@ -388,20 +394,6 @@ function buildStrategyAnalysis(mode: StrategyMode, text: string): StrategyAnalys
   };
 }
 
-function getLogsFromStorage(personId?: string): RelationshipLogItem[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem("judge_relationship_logs");
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as RelationshipLogItem[];
-    if (!Array.isArray(parsed)) return [];
-    if (!personId) return parsed;
-    return parsed.filter((item) => item.personId === personId);
-  } catch {
-    return [];
-  }
-}
-
 async function buildStrategyAnalysisViaApi(
   mode: StrategyMode,
   text: string,
@@ -409,11 +401,12 @@ async function buildStrategyAnalysisViaApi(
     currentPerson?: Person | null;
     currentPersonId?: string;
     latestInput?: LatestInput | null;
-  }
+    logs?: RelationshipLogItem[];
+  },
 ): Promise<StrategyAnalysis | null> {
   try {
     const meta = buildPhaseMeta(mode, text);
-    const logs = getLogsFromStorage(context?.currentPersonId).map((item) => ({
+    const logs = (context?.logs ?? []).map((item) => ({
       id: item.id,
       date:
         item.date ||
@@ -705,55 +698,60 @@ function ChatPageContent() {
   const [quickLogContent, setQuickLogContent] = useState("");
   const [relationshipLogs, setRelationshipLogs] = useState<RelationshipLog[]>([]);
   const [quickAnalysis, setQuickAnalysis] = useState("");
+  const [canSaveData, setCanSaveData] = useState(false);
 
   const isFullDemo = searchParams.get("full") === "1";
   const isFreeUser = !isFullDemo;
 
   useEffect(() => {
-    const latestRaw =
-      sessionStorage.getItem(LATEST_INPUT_KEY) ||
-      (typeof window !== "undefined" ? window.localStorage.getItem(LATEST_INPUT_KEY) : null);
-    let latest: LatestInput | null = null;
-    if (latestRaw) {
-      try {
-        latest = JSON.parse(latestRaw) as LatestInput;
-      } catch {
-        latest = null;
+    void (async () => {
+      const latestRaw =
+        sessionStorage.getItem(LATEST_INPUT_KEY) ||
+        (typeof window !== "undefined" ? window.localStorage.getItem(LATEST_INPUT_KEY) : null);
+      let latest: LatestInput | null = null;
+      if (latestRaw) {
+        try {
+          latest = JSON.parse(latestRaw) as LatestInput;
+        } catch {
+          latest = null;
+        }
       }
-    }
-    const loadedPeople = loadPeople();
-    setPeople(loadedPeople);
-    setRelationshipLogs(loadRelationshipLogs());
-    const initialPersonId = latest?.personId || loadedPeople[0]?.id || "";
-    setCurrentPersonId(initialPersonId);
-    setLatestInput(latest);
+      const auth = await isAuthenticated();
+      setCanSaveData(auth);
+      const loadedPeople = await loadPeopleByUser();
+      setPeople(loadedPeople);
+      setRelationshipLogs(await loadRelationshipLogsByUser());
+      const initialPersonId = latest?.personId || loadedPeople[0]?.id || "";
+      setCurrentPersonId(initialPersonId);
+      setLatestInput(latest);
 
-    const selectedPerson = loadedPeople.find((person) => person.id === initialPersonId) ?? null;
-    const storedBirthdate = selectedPerson?.birthDate || latest?.partnerBirthDate;
-    const storedBirthtime = selectedPerson?.birthTime || latest?.partnerBirthTime;
-    const hasStoredPartner = Boolean(storedBirthdate);
+      const selectedPerson = loadedPeople.find((person) => person.id === initialPersonId) ?? null;
+      const storedBirthdate = selectedPerson?.birthDate || latest?.partnerBirthDate;
+      const storedBirthtime = selectedPerson?.birthTime || latest?.partnerBirthTime;
+      const hasStoredPartner = Boolean(storedBirthdate);
 
-    if (isFullDemo) {
-      const birthdate = storedBirthdate || DEMO_PARTNER_BIRTHDATE;
-      const birthtime = storedBirthtime || DEMO_PARTNER_BIRTHTIME;
-      const partnerProfile = buildPartnerProfile(birthdate, birthtime);
-      setPartner(partnerProfile);
-      setResult(calculateCompatibility(selfProfile, partnerProfile));
-      setMode("full");
-      return;
-    }
+      if (isFullDemo) {
+        const birthdate = storedBirthdate || DEMO_PARTNER_BIRTHDATE;
+        const birthtime = storedBirthtime || DEMO_PARTNER_BIRTHTIME;
+        const partnerProfile = buildPartnerProfile(birthdate, birthtime);
+        setPartner(partnerProfile);
+        setResult(calculateCompatibility(selfProfile, partnerProfile));
+        setMode("full");
+        return;
+      }
 
-    if (hasStoredPartner) {
-      const partnerProfile = buildPartnerProfile(storedBirthdate!, storedBirthtime || "12:00");
-      setPartner(partnerProfile);
-      setResult(calculateCompatibility(selfProfile, partnerProfile));
-      setMode("diagnosed");
-      return;
-    }
+      if (hasStoredPartner) {
+        const partnerProfile = buildPartnerProfile(storedBirthdate!, storedBirthtime || "12:00");
+        setPartner(partnerProfile);
+        setResult(calculateCompatibility(selfProfile, partnerProfile));
+        setMode("diagnosed");
+        return;
+      }
 
-    setPartner(null);
-    setResult(null);
-    setMode("undiagnosed");
+      setPartner(null);
+      setResult(null);
+      setMode("undiagnosed");
+    })();
   }, [isFullDemo]);
 
   useEffect(() => {
@@ -813,6 +811,7 @@ function ChatPageContent() {
   const fixedCopyText = latestLineEntry?.analysis.linePatterns?.[0]?.text ?? latestLineEntry?.analysis.lineDraft ?? "";
 
   const handleQuickLogSave = () => {
+    if (!canSaveData) return;
     const content = quickLogContent.trim();
     if (!content || !currentPersonId) return;
     const logType: RelationshipLog["type"] =
@@ -826,7 +825,7 @@ function ChatPageContent() {
     };
     const nextLogs = [log, ...relationshipLogs];
     setRelationshipLogs(nextLogs);
-    saveRelationshipLogs(nextLogs);
+    void saveRelationshipLogsByUser(nextLogs);
     setQuickAnalysis(analyzeQuickLog(quickLogType, content));
     setQuickLogContent("");
   };
@@ -840,6 +839,7 @@ function ChatPageContent() {
         currentPerson,
         currentPersonId,
         latestInput,
+        logs: relationshipLogs,
       });
       const analysis = apiAnalysis ?? buildStrategyAnalysis(strategyMode, text);
       setLiveEntries((prev) => [
@@ -881,7 +881,10 @@ function ChatPageContent() {
           <a href="/" className="text-xs font-semibold tracking-[0.18em] text-zinc-900">
             JUDGE CODE
           </a>
-          <span className="text-[11px] font-medium tracking-wide text-zinc-500">恋愛伴走</span>
+          <div className="flex items-center gap-3">
+            <span className="text-[11px] font-medium tracking-wide text-zinc-500">恋愛伴走</span>
+            <AuthAction />
+          </div>
         </div>
       </header>
 
@@ -1043,6 +1046,9 @@ function ChatPageContent() {
               <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-500">
                 関係ログクイック入力
               </p>
+              {!canSaveData ? (
+                <p className="text-xs text-amber-700">この内容を保存するにはログインしてください。</p>
+              ) : null}
               <div className="flex flex-wrap gap-2">
                 {(Object.keys(quickLogLabels) as QuickLogType[]).map((type) => (
                   <button
@@ -1085,9 +1091,9 @@ function ChatPageContent() {
                 <button
                   type="button"
                   onClick={handleQuickLogSave}
-                  disabled={!quickLogContent.trim() || !currentPersonId}
+                  disabled={!canSaveData || !quickLogContent.trim() || !currentPersonId}
                   className={`inline-flex h-9 items-center rounded-full px-4 text-xs font-semibold ${
-                    quickLogContent.trim() && currentPersonId
+                    canSaveData && quickLogContent.trim() && currentPersonId
                       ? "bg-zinc-900 text-white"
                       : "cursor-not-allowed bg-zinc-300 text-zinc-600"
                   }`}

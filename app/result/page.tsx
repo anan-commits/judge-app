@@ -11,8 +11,10 @@ import {
 import type { FortuneResult } from "../../lib/fortune/types";
 import { getFortuneProfile } from "../../lib/fortune/getFortuneProfile";
 import { normalizeBirthDate } from "../../lib/fortune/normalizeBirthDate";
-import { loadMe, loadPeople } from "../../lib/people/storage";
+import { loadMeProfile, loadPeopleByUser } from "../../lib/people/storage";
 import type { Relationship } from "../../lib/people/types";
+import { getGenderColor } from "../../lib/ui/gender";
+import AuthAction from "../../components/AuthAction";
 
 const LATEST_INPUT_KEY = "judge_latest_input";
 
@@ -250,11 +252,21 @@ function ThreeLayerScoreSection() {
   );
 }
 
-function ResultPersonHeader({ name, subtitle }: { name: string; subtitle: string }) {
+function ResultPersonHeader({
+  name,
+  subtitle,
+  gender,
+}: {
+  name: string;
+  subtitle: string;
+  gender?: "male" | "female" | "other";
+}) {
   return (
     <div className="flex min-w-0 flex-1 flex-col items-center gap-2.5 rounded-2xl border border-zinc-200/90 bg-white px-2 py-4 shadow-sm sm:gap-3 sm:px-3 sm:py-5">
       <div
-        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-base font-semibold text-zinc-700 ring-1 ring-zinc-200/80 sm:h-14 sm:w-14 sm:text-lg"
+        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-base font-semibold ring-1 ring-zinc-200/80 sm:h-14 sm:w-14 sm:text-lg ${getGenderColor(
+          gender
+        )}`}
         aria-hidden
       >
         👤
@@ -357,50 +369,52 @@ function ResultPageContent() {
   const [diagnosisData, setDiagnosisData] = useState<DiagnosisPayload | null>(null);
   const [meName, setMeName] = useState("あなた");
   const [partnerName, setPartnerName] = useState("お相手");
+  const [meGender, setMeGender] = useState<"male" | "female" | "other" | undefined>(undefined);
 
   useEffect(() => {
-    // const latestInputRaw = localStorage.getItem(LATEST_INPUT_KEY);
-    // Temporarily disable localStorage read for source isolation.
-    const latestInputRaw = sessionStorage.getItem(LATEST_INPUT_KEY);
-    const diagnosisRaw = sessionStorage.getItem("judge-code:latest-diagnosis");
-    if (!latestInputRaw) {
-      router.replace("/diagnosis");
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(latestInputRaw) as LatestInput;
-      if (!parsed.myBirthDate || !parsed.partnerBirthDate) {
+    void (async () => {
+      const latestInputRaw = sessionStorage.getItem(LATEST_INPUT_KEY);
+      const diagnosisRaw = sessionStorage.getItem("judge-code:latest-diagnosis");
+      if (!latestInputRaw) {
         router.replace("/diagnosis");
         return;
       }
-      setLatestInput(parsed);
-      const me = loadMe();
-      const people = loadPeople();
-      const selectedPerson = parsed.personId
-        ? people.find((person) => person.id === parsed.personId)
-        : undefined;
-      if (me?.name?.trim()) {
-        setMeName(me.name.trim());
-      }
-      if (selectedPerson?.name?.trim()) {
-        setPartnerName(selectedPerson.name.trim());
-      }
-    } catch {
-      router.replace("/diagnosis");
-      return;
-    }
-    if (diagnosisRaw) {
+
       try {
-        const parsed = JSON.parse(diagnosisRaw) as DiagnosisPayload;
-        setDiagnosisData(parsed);
+        const parsed = JSON.parse(latestInputRaw) as LatestInput;
+        if (!parsed.myBirthDate || !parsed.partnerBirthDate) {
+          router.replace("/diagnosis");
+          return;
+        }
+        setLatestInput(parsed);
+        const me = await loadMeProfile();
+        const people = await loadPeopleByUser();
+        const selectedPerson = parsed.personId
+          ? people.find((person) => person.id === parsed.personId)
+          : undefined;
+        if (me?.name?.trim()) {
+          setMeName(me.name.trim());
+          setMeGender(me.gender);
+        }
+        if (selectedPerson?.name?.trim()) {
+          setPartnerName(selectedPerson.name.trim());
+        }
       } catch {
+        router.replace("/diagnosis");
+        return;
+      }
+      if (diagnosisRaw) {
+        try {
+          const parsed = JSON.parse(diagnosisRaw) as DiagnosisPayload;
+          setDiagnosisData(parsed);
+        } catch {
+          setDiagnosisData(null);
+        }
+      } else {
         setDiagnosisData(null);
       }
-    } else {
-      setDiagnosisData(null);
-    }
-    setCheckedSession(true);
+      setCheckedSession(true);
+    })();
   }, [router]);
 
   const handleSave = () => {
@@ -511,9 +525,12 @@ function ResultPageContent() {
             <span className="text-sm font-semibold tracking-[0.2em] text-zinc-900">JUDGE</span>
             <span className="text-sm font-medium tracking-wide text-zinc-500">CODE</span>
           </a>
-          <span className="hidden text-xs font-medium tracking-wide text-zinc-500 sm:inline">
-            診断結果
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="hidden text-xs font-medium tracking-wide text-zinc-500 sm:inline">
+              診断結果
+            </span>
+            <AuthAction />
+          </div>
         </div>
       </header>
 
@@ -667,7 +684,7 @@ function ResultPageContent() {
               role="group"
               aria-label="診断対象"
             >
-          <ResultPersonHeader name={selfCardTitle} subtitle="診断対象: あなた" />
+          <ResultPersonHeader name={selfCardTitle} subtitle="診断対象: あなた" gender={meGender} />
           <ResultPersonHeader name={partnerCardTitle} subtitle="診断対象: お相手" />
             </div>
 

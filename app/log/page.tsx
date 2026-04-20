@@ -1,5 +1,6 @@
 import Link from "next/link";
 import RelationshipLog from "../../components/RelationshipLog";
+import AuthAction from "../../components/AuthAction";
 
 export default function LogPage() {
   return (
@@ -9,7 +10,10 @@ export default function LogPage() {
           <Link href="/" className="text-xs font-semibold tracking-[0.18em] text-zinc-900">
             JUDGE CODE
           </Link>
-          <span className="text-[11px] font-medium tracking-wide text-zinc-500">関係ログ</span>
+          <div className="flex items-center gap-3">
+            <span className="text-[11px] font-medium tracking-wide text-zinc-500">関係ログ</span>
+            <AuthAction />
+          </div>
         </div>
       </header>
       <RelationshipLog />
