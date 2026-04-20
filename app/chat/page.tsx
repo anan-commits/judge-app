@@ -166,25 +166,30 @@ function AiSixSectionCards({
   );
 }
 
-function DiagnosisNudgeCard() {
+function ChatPaywallCard() {
   return (
     <div
       role="region"
-      aria-label="相性診断の案内"
+      aria-label="有料開放の案内"
       className="rounded-2xl border border-amber-200/90 bg-amber-50/95 p-4 shadow-sm ring-1 ring-amber-100/60 sm:p-5"
     >
       <h2 className="text-[15px] font-semibold leading-snug tracking-tight text-amber-950 sm:text-base">
-        この相談は、2人の相性診断をすると精度が上がります
+        この状況では最初の一言で結果が変わります
       </h2>
-      <p className="mt-2.5 text-sm leading-relaxed text-amber-950/90">
-        生年月日と出生時間を入れると、相手の心理や次の一手をより具体的に整理できます
-      </p>
-      <Link
-        href="/diagnosis"
+      <ul className="mt-3 space-y-1.5 text-sm leading-relaxed text-amber-950/90">
+        <li>・送るべき具体的なLINE</li>
+        <li>・NG行動</li>
+        <li>・相手の心理</li>
+      </ul>
+      <button
+        type="button"
+        onClick={() => {
+          console.log("[paywall] 続きを見る ¥980");
+        }}
         className="mt-4 flex h-12 w-full min-h-[48px] items-center justify-center rounded-full bg-zinc-900 px-4 text-sm font-semibold text-white hover:bg-zinc-800 active:bg-zinc-800"
       >
-        無料で診断する
-      </Link>
+        続きを見る（¥980）
+      </button>
     </div>
   );
 }
@@ -400,7 +405,7 @@ function ChatPageContent() {
                 <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
                   Judge Code AI
                 </p>
-                <DiagnosisNudgeCard />
+                <ChatPaywallCard />
               </div>
             ) : null}
             <textarea
@@ -417,7 +422,7 @@ function ChatPageContent() {
             {mode === "undiagnosed" ? (
               <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
                 発言が{DIAGNOSIS_NUDGE_AFTER_SENDS}回以上、または{DEEP_CONSULT_MIN_CHARS}
-                文字以上入力したとき、上に診断案内が表示されます。
+                文字以上入力したとき、上に続き開放の案内が表示されます。
               </p>
             ) : null}
             <div className="mt-3 flex justify-end">
