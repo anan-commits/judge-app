@@ -453,6 +453,20 @@ function ResultPageContent() {
 
       <section className="mx-auto max-w-6xl px-6 py-10 md:px-10 md:py-14">
         <ThreeLayerScoreSection />
+        <div className="mt-4 rounded-2xl border border-red-300 bg-red-50 p-4 md:mt-5">
+          <p className="font-bold text-red-700">
+            ⚠️ 今の返信次第で、この関係は一気に動く可能性があります
+          </p>
+          <p className="mt-2 text-sm text-gray-600">
+            分析で止まらず、次に送る1通を先に決めると失敗を減らせます。
+          </p>
+          <a
+            href="/chat"
+            className="mt-3 inline-flex h-11 min-h-[44px] w-full items-center justify-center rounded-full bg-zinc-900 px-5 text-sm font-semibold text-white hover:bg-zinc-800 sm:w-auto"
+          >
+            LINE生成を開く
+          </a>
+        </div>
 
         <div className="mt-6 rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)] sm:p-6 md:rounded-3xl md:p-7">
           <p className="text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">相性サマリー</p>

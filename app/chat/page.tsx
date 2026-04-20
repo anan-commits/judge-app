@@ -63,6 +63,7 @@ type StrategyAnalysis = {
   line3: string;
   paidLine: string;
   lineDraft?: string;
+  linePatterns?: { type: string; text: string }[];
   ngList?: string[];
   point?: string;
 };
@@ -245,7 +246,18 @@ function buildStrategyAnalysis(mode: StrategyMode, text: string): StrategyAnalys
   }
   if (mode === "line") {
     const compact = text.replaceAll("\n", " ").slice(0, 80);
-    const lineDraft = `急かすつもりはないよ。${compact ? `「${compact}」の件も、` : ""}落ち着いたタイミングで一言だけもらえたら嬉しい。`;
+    const base = compact ? `「${compact}」の件も、` : "";
+    const patterns = [
+      {
+        type: "軽め",
+        text: `今日はありがとう😊 ${base}また話せるタイミングで連絡もらえたら嬉しい。`,
+      },
+      {
+        type: "少し主導",
+        text: `今週どこかで10分だけ話せる？ ${base}タイミング合わせて前に進めたい。`,
+      },
+    ];
+    const lineDraft = patterns[0].text;
     return {
       kind: "line",
       title: "LINE生成",
@@ -254,6 +266,7 @@ function buildStrategyAnalysis(mode: StrategyMode, text: string): StrategyAnalys
       line3: "",
       paidLine: lineDraft,
       lineDraft,
+      linePatterns: patterns,
       ngList: ["感情のぶつけ連投", "返事を急かす圧のある文", "過去の不満を一度に書く"],
       point: "結論を1つに絞り、相手が返しやすい短文で送るほど反応率が上がります。",
     };
@@ -271,18 +284,22 @@ function buildStrategyAnalysis(mode: StrategyMode, text: string): StrategyAnalys
 function StrategyAnalysisCard({
   analysis,
   locked,
+  isPaidUser,
 }: {
   analysis: StrategyAnalysis;
   locked: boolean;
+  isPaidUser: boolean;
 }) {
-  const maskedLine = `${(analysis.lineDraft ?? "").slice(0, 14)}…（続きは有料）`;
-  const lineForDisplay = locked ? maskedLine : analysis.lineDraft ?? "";
+  const patterns = analysis.linePatterns ?? [{ type: "基本", text: analysis.lineDraft ?? "" }];
+  const [activePattern, setActivePattern] = useState(0);
+  const selectedLine = patterns[activePattern]?.text ?? "";
+  const previewLine = `${selectedLine.slice(0, 24)}…（続きは有料）`;
+  const lineForDisplay = locked ? previewLine : selectedLine;
 
   const copyLine = async () => {
-    if (!analysis.lineDraft) return;
-    const text = locked ? lineForDisplay : analysis.lineDraft;
+    if (!selectedLine || !isPaidUser) return;
     try {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(selectedLine);
       console.log("[line-copy] copied");
     } catch {
       console.log("[line-copy] failed");
@@ -293,6 +310,14 @@ function StrategyAnalysisCard({
     return (
       <article className="max-w-[96%] rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm leading-relaxed text-zinc-800">
         <p className="text-xs font-semibold tracking-wide text-zinc-500">{analysis.title}</p>
+        <div className="mt-3 rounded-lg border border-red-300 bg-red-50 p-4">
+          <p className="font-bold text-red-700">
+            ⚠️ このまま進むと「都合のいい人」で終わる可能性があります
+          </p>
+          <p className="mt-2 text-sm text-gray-600">
+            特に今のタイミングでのLINEは、関係性を大きく左右します。
+          </p>
+        </div>
         <div className="mt-2 space-y-3">
           <div>
             <p className="text-xs font-semibold text-zinc-600">■状況</p>
@@ -308,9 +333,40 @@ function StrategyAnalysisCard({
           </div>
           <div>
             <p className="text-xs font-semibold text-zinc-600">■今送るべきLINE</p>
-            <p aria-hidden={locked || undefined} className={`mt-1 ${locked ? "select-none blur-[2px]" : ""}`}>
-              👉 {lineForDisplay}
-            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {patterns.map((pattern, idx) => (
+                <button
+                  key={`${pattern.type}-${idx}`}
+                  type="button"
+                  onClick={() => setActivePattern(idx)}
+                  className={`inline-flex h-8 items-center rounded-full px-3 text-xs font-medium ${
+                    activePattern === idx
+                      ? "bg-zinc-900 text-white"
+                      : "border border-zinc-300 bg-white text-zinc-700"
+                  }`}
+                >
+                  {pattern.type}
+                </button>
+              ))}
+            </div>
+            <div className="mt-2 flex justify-end">
+              <div className="max-w-xs rounded-2xl bg-green-500 px-4 py-2 text-white shadow">
+                {locked ? (
+                  <div className="relative">
+                    <div aria-hidden className="line-clamp-2 blur-sm">
+                      {selectedLine}
+                    </div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <button className="rounded-full bg-black px-4 py-2 text-xs font-semibold text-white">
+                        続きを見る（有料）
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p>👉 {lineForDisplay}</p>
+                )}
+              </div>
+            </div>
           </div>
           <div>
             <p className="text-xs font-semibold text-zinc-600">■ポイント</p>
@@ -319,10 +375,21 @@ function StrategyAnalysisCard({
           <button
             type="button"
             onClick={copyLine}
-            className="inline-flex h-10 min-h-[40px] w-full items-center justify-center rounded-full border border-zinc-300 bg-white px-4 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+            disabled={!isPaidUser}
+            className={`inline-flex h-10 min-h-[40px] w-full items-center justify-center rounded-full px-4 text-sm font-medium ${
+              isPaidUser
+                ? "border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100"
+                : "cursor-not-allowed border border-zinc-200 bg-zinc-100 text-zinc-400"
+            }`}
           >
             コピー
           </button>
+          <div className="text-center">
+            <p className="mb-2 text-sm text-gray-600">このLINEで関係が決まります</p>
+            <button className="rounded-full bg-red-500 px-6 py-3 text-lg font-bold text-white shadow">
+              今すぐ解放する
+            </button>
+          </div>
         </div>
       </article>
     );
@@ -414,6 +481,12 @@ function ChatPageContent() {
       `注意 ${result.cautions[0] ?? "-"}`,
     ];
   }, [result]);
+  const lockActive = mode === "undiagnosed" && showDiagnosisNudge;
+  const isPaidUser = !lockActive;
+  const latestLineEntry = [...liveEntries]
+    .reverse()
+    .find((entry) => entry.analysis.kind === "line");
+  const fixedCopyText = latestLineEntry?.analysis.linePatterns?.[0]?.text ?? latestLineEntry?.analysis.lineDraft ?? "";
 
   const handleSend = () => {
     const text = draft.trim();
@@ -506,7 +579,7 @@ function ChatPageContent() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-2xl px-4 py-5 pb-8">
+      <section className="mx-auto max-w-2xl px-4 py-5 pb-28">
         <div className="rounded-3xl border border-zinc-200/90 bg-white p-4 shadow-sm md:p-5">
           <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-500">
             チャット相談履歴
@@ -563,7 +636,7 @@ function ChatPageContent() {
                   <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
                     Judge Code AI
                   </p>
-                  <StrategyAnalysisCard analysis={entry.analysis} locked={mode === "undiagnosed" && showDiagnosisNudge} />
+                  <StrategyAnalysisCard analysis={entry.analysis} locked={lockActive} isPaidUser={isPaidUser} />
                 </div>
               </div>
             ))}
@@ -643,6 +716,26 @@ function ChatPageContent() {
           </div>
         </div>
       </section>
+      <div className="fixed bottom-0 left-0 right-0 border-t bg-white p-3">
+        <div className="mx-auto max-w-2xl">
+          <button
+            type="button"
+            disabled={!isPaidUser || !fixedCopyText}
+            onClick={async () => {
+              if (!isPaidUser || !fixedCopyText) return;
+              await navigator.clipboard.writeText(fixedCopyText);
+              console.log("[line-copy] fixed copied");
+            }}
+            className={`w-full rounded-lg py-3 text-lg font-bold ${
+              isPaidUser && fixedCopyText
+                ? "bg-green-600 text-white"
+                : "cursor-not-allowed bg-zinc-200 text-zinc-500"
+            }`}
+          >
+            LINEにコピーして使う
+          </button>
+        </div>
+      </div>
     </main>
   );
 }
