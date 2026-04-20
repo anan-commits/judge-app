@@ -53,6 +53,22 @@ const UNDIAGNOSED_LIGHT_REPLY_T3 =
   "まず24〜48時間は間を空けるのが無難です。要点は1つに絞った短文にすると負担が少ないです。（※五行・九星などの統合視点は診断後に案内します）";
 
 type ChatMode = "loading" | "full" | "diagnosed" | "undiagnosed";
+type StrategyMode = "reply" | "position" | "future";
+
+type StrategyAnalysis = {
+  title: string;
+  line1: string;
+  line2: string;
+  line3: string;
+  paidLine: string;
+};
+
+type LiveAnalysisEntry = {
+  id: string;
+  mode: StrategyMode;
+  userText: string;
+  analysis: StrategyAnalysis;
+};
 
 const dummyThreads: ConsultThread[] = [
   {
@@ -194,6 +210,69 @@ function ChatPaywallCard() {
   );
 }
 
+function detectTone(text: string): "ポジティブ" | "ネガティブ" {
+  const negativeHints = ["無理", "もう", "疲れ", "既読", "未読", "冷め", "しんど", "距離", "返事ない"];
+  const normalized = text.toLowerCase();
+  return negativeHints.some((word) => normalized.includes(word)) ? "ネガティブ" : "ポジティブ";
+}
+
+function buildStrategyAnalysis(mode: StrategyMode, text: string): StrategyAnalysis {
+  if (mode === "reply") {
+    const tone = detectTone(text);
+    const lead = tone === "ネガティブ" ? "相手優位" : "拮抗";
+    return {
+      title: "返信分析",
+      line1: `感情トーン: ${tone}`,
+      line2: `何が起きてるか: 返答に迷いがあり、温度合わせ待ちの状態です。`,
+      line3: `主導権: ${lead}（あなたの一言で流れを戻せる局面）`,
+      paidLine: "具体的LINE案: 『責めずに温度だけ合わせる1通』を先に送ると反応率が上がりやすいです。",
+    };
+  }
+  if (mode === "position") {
+    return {
+      title: "ポジション分析",
+      line1: "本命: 感情は強いが慎重で、決定打待ちの位置",
+      line2: "安定: 連絡継続はしやすいが熱量は上がりにくい位置",
+      line3: "刺激: 反応は出るが長期安定しにくい位置",
+      paidLine: "具体的LINE案: 本命化に寄せる『安心＋余白』の一文テンプレを提示できます。",
+    };
+  }
+  return {
+    title: "未来分岐",
+    line1: "このままいくと: 連絡は続くが、曖昧な関係で停滞しやすいです。",
+    line2: "ミスると: 追い連絡で相手の防衛が上がり、返信間隔がさらに伸びます。",
+    line3: "勝ち筋: 次の1通で目的を1つに絞ると、関係が前進しやすくなります。",
+    paidLine: "具体的LINE案: 分岐を好転させる『短文3パターン』を状況別に出し分けます。",
+  };
+}
+
+function StrategyAnalysisCard({
+  analysis,
+  locked,
+}: {
+  analysis: StrategyAnalysis;
+  locked: boolean;
+}) {
+  return (
+    <article className="max-w-[96%] rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm leading-relaxed text-zinc-800">
+      <p className="text-xs font-semibold tracking-wide text-zinc-500">{analysis.title}</p>
+      <div className="mt-2 space-y-1.5">
+        <p>{analysis.line1}</p>
+        <p>{analysis.line2}</p>
+        <p>{analysis.line3}</p>
+        <p aria-hidden={locked || undefined} className={locked ? "select-none blur-[3px]" : ""}>
+          {analysis.paidLine}
+        </p>
+      </div>
+      {locked ? (
+        <p className="mt-3 text-xs font-medium text-amber-800">
+          具体的なLINE文は有料開放で表示されます。
+        </p>
+      ) : null}
+    </article>
+  );
+}
+
 function ChatPageContent() {
   const searchParams = useSearchParams();
   const [mode, setMode] = useState<ChatMode>("loading");
@@ -202,6 +281,8 @@ function ChatPageContent() {
   const [draft, setDraft] = useState("");
   const [sendCount, setSendCount] = useState(0);
   const [showDiagnosisNudge, setShowDiagnosisNudge] = useState(false);
+  const [strategyMode, setStrategyMode] = useState<StrategyMode>("reply");
+  const [liveEntries, setLiveEntries] = useState<LiveAnalysisEntry[]>([]);
 
   const isFullDemo = searchParams.get("full") === "1";
   const isFreeUser = !isFullDemo;
@@ -261,6 +342,18 @@ function ChatPageContent() {
 
   const handleSend = () => {
     const text = draft.trim();
+    if (text.length > 0) {
+      const analysis = buildStrategyAnalysis(strategyMode, text);
+      setLiveEntries((prev) => [
+        ...prev,
+        {
+          id: `${Date.now()}-${prev.length}`,
+          mode: strategyMode,
+          userText: text,
+          analysis,
+        },
+      ]);
+    }
     if (mode === "undiagnosed" && text.length > 0) {
       const nextCount = sendCount + 1;
       setSendCount(nextCount);
@@ -382,6 +475,23 @@ function ChatPageContent() {
                 </div>
               </div>
             ))}
+
+            {liveEntries.map((entry) => (
+              <div key={entry.id} className="border-b border-zinc-100 pb-6 last:border-0 last:pb-0">
+                <article className="ml-auto max-w-[92%] rounded-2xl bg-zinc-900 px-4 py-3 text-sm text-white">
+                  <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-white/60">
+                    あなた
+                  </p>
+                  <p className="leading-relaxed">{entry.userText}</p>
+                </article>
+                <div className="mt-3">
+                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+                    Judge Code AI
+                  </p>
+                  <StrategyAnalysisCard analysis={entry.analysis} locked={mode === "undiagnosed" && showDiagnosisNudge} />
+                </div>
+              </div>
+            ))}
           </div>
 
           <div className="mt-8 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
@@ -400,6 +510,26 @@ function ChatPageContent() {
           </div>
 
           <div className="mt-4 rounded-2xl border border-zinc-200 bg-white p-3 sm:p-4">
+            <div className="mb-3 flex flex-wrap gap-2">
+              {[
+                { key: "reply", label: "返信分析" },
+                { key: "position", label: "ポジション分析" },
+                { key: "future", label: "未来分岐" },
+              ].map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => setStrategyMode(item.key as StrategyMode)}
+                  className={`inline-flex h-9 min-h-[36px] items-center rounded-full px-3 text-xs font-medium ${
+                    strategyMode === item.key
+                      ? "bg-zinc-900 text-white"
+                      : "border border-zinc-300 bg-white text-zinc-700"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
             {mode === "undiagnosed" && showDiagnosisNudge ? (
               <div className="mb-4">
                 <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
