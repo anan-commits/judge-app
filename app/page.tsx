@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Home() {
   const statuses = {
     self: {
@@ -62,6 +64,9 @@ export default function Home() {
             <a href="/about" className="text-xs text-zinc-500 underline-offset-2 hover:underline">
               Judge Codeとは
             </a>
+            <Link href="/log" className="text-xs text-blue-600 underline-offset-2 hover:underline">
+              関係ログを見る
+            </Link>
           </div>
           <a href="/chat" className="text-xs font-medium text-zinc-600 hover:text-zinc-900">
             相談ルームへ
