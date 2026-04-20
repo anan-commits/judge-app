@@ -3,8 +3,7 @@ import { normalizeBirthDate } from "./normalizeBirthDate";
 
 export type FortuneProfile = {
   kanshi: string;
-  gogyo: string;
-  yinYang: string;
+  yinYangGogyo: string;
   kyusei: string;
   koseigaku: string;
 };
@@ -66,17 +65,19 @@ export function getFortuneProfile(input: {
     });
     return null;
   }
-  const kanshi = kanshiByDestinyNumber[gogyoResult.destinyNumber] ?? `${gogyoResult.stem}寅`;
-  const gogyo = gogyoResult.element;
-  const yinYang = gogyoResult.label;
+  const kanshi = kanshiByDestinyNumber[gogyoResult.destinyNumber];
+  if (!kanshi) {
+    console.error("[fortune] kanshi mapping missing", gogyoResult.destinyNumber);
+    return null;
+  }
+  const yinYangGogyo = gogyoResult.label;
   const kyusei = kyuseiMap[(year + 2) % 9];
   // 1971-01 case: (1971+1+2)%3 => 0 => "大物思考完璧"
   const koseigaku = koseigakuList[(year + month + 2) % 3];
 
   const profile = {
     kanshi,
-    gogyo,
-    yinYang,
+    yinYangGogyo,
     kyusei,
     koseigaku,
   };

@@ -97,8 +97,7 @@ function buildDisplayProfile(birthdate: string, birthtime: string) {
     birthdate: normalizedBirthDate,
     birthtime,
     kanshi: fortune.kanshi,
-    fiveElement: fortune.gogyo,
-    yinYang: fortune.yinYang,
+    yinYangGogyo: fortune.yinYangGogyo,
     nineStar: fortune.kyusei,
     personality: fortune.koseigaku,
     luckyDirection: "-",
@@ -297,13 +296,17 @@ function ProfileStatusCard({
         <p className="hidden md:block">
           出生時間: <span className="font-semibold text-zinc-900">{d?.birthtime ?? "-"}</span>
         </p>
-        <p>陰陽五行: <span className="font-semibold text-zinc-900">{d?.kanshi ?? "-"}（{d?.yinYang ?? "-"}）</span></p>
-        <p>
-          九星気学: <span className="font-semibold text-zinc-900">{d?.nineStar ?? "-"}</span>
-        </p>
-        <p>
-          個性学: <span className="font-semibold text-zinc-900">{d?.personality ?? "-"}</span>
-        </p>
+        {d ? <p>陰陽五行: <span className="font-semibold text-zinc-900">{d.kanshi}（{d.yinYangGogyo}）</span></p> : null}
+        {d ? (
+          <p>
+            九星気学: <span className="font-semibold text-zinc-900">{d.nineStar}</span>
+          </p>
+        ) : null}
+        {d ? (
+          <p>
+            個性学: <span className="font-semibold text-zinc-900">{d.personality}</span>
+          </p>
+        ) : null}
         <p className="hidden md:block">
           吉方位: <span className="font-semibold text-zinc-900">{d?.luckyDirection ?? "-"}</span>
         </p>
@@ -319,7 +322,7 @@ function ProfileStatusCard({
               <span className="font-medium text-zinc-800">{d?.birthtime ?? "-"}</span>
             </p>
             <p>
-              陰陽五行: <span className="font-medium text-zinc-800">{d?.kanshi ?? "-"}（{d?.yinYang ?? "-"}）</span>
+              陰陽五行: <span className="font-medium text-zinc-800">{d?.kanshi ?? ""}{d ? `（${d.yinYangGogyo}）` : ""}</span>
             </p>
             <p>
               吉方位: <span className="font-medium text-zinc-800">{d?.luckyDirection ?? "-"}</span>
@@ -415,33 +418,21 @@ function ResultPageContent() {
     birthTime: selfBirthtime,
   });
   const partnerProfile = getFortuneProfile({
-    birthDate: activePartner?.birthdate ?? "1995-03-21",
+    birthDate: activePartner?.birthdate,
     birthTime: activePartner?.birthtime,
   });
-  const myDisplayProfile = {
-    kanshi: myProfile?.kanshi ?? "-",
-    gogyo: myProfile?.gogyo ?? "-",
-    yinYang: myProfile?.yinYang ?? "-",
-    kyusei: myProfile?.kyusei ?? "-",
-    koseigaku: myProfile?.koseigaku ?? "-",
-  };
-  const partnerDisplayProfile = {
-    kanshi: partnerProfile?.kanshi ?? "-",
-    gogyo: partnerProfile?.gogyo ?? "-",
-    yinYang: partnerProfile?.yinYang ?? "-",
-    kyusei: partnerProfile?.kyusei ?? "-",
-    koseigaku: partnerProfile?.koseigaku ?? "-",
-  };
+  const myDisplayProfile = myProfile;
+  const partnerDisplayProfile = partnerProfile;
   const selfDisplay = buildDisplayProfile(selfBirthdate, selfBirthtime);
   const partnerDisplay = activePartner
     ? buildDisplayProfile(activePartner.birthdate, activePartner.birthtime)
     : null;
   const normalizedSelfBirthDate = normalizeBirthDate(selfBirthdate);
-  const normalizedPartnerBirthDate = normalizeBirthDate(activePartner?.birthdate ?? "1995-03-21");
+  const normalizedPartnerBirthDate = normalizeBirthDate(activePartner?.birthdate);
   console.log("birthDate raw", selfBirthdate);
   console.log("birthDate normalized", normalizedSelfBirthDate);
   console.log("profile", myProfile);
-  console.log("birthDate raw", activePartner?.birthdate ?? "1995-03-21");
+  console.log("birthDate raw", activePartner?.birthdate);
   console.log("birthDate normalized", normalizedPartnerBirthDate);
   console.log("profile", partnerProfile);
   const recommendedAction = result?.actions[0] ?? "週1回15分の方針共有を設定する";
@@ -518,27 +509,33 @@ function ResultPageContent() {
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
                 <p className="font-semibold text-zinc-900">四柱推命（あなた）</p>
-                <p className="mt-1">陰陽五行: {myDisplayProfile.kanshi}（{myDisplayProfile.yinYang}）</p>
-                <p>九星気学: {myDisplayProfile.kyusei}</p>
-                <p>個性学: {myDisplayProfile.koseigaku}</p>
+                {myDisplayProfile ? (
+                  <>
+                    <p className="mt-1">陰陽五行: {myDisplayProfile.kanshi}（{myDisplayProfile.yinYangGogyo}）</p>
+                    <p>九星気学: {myDisplayProfile.kyusei}</p>
+                    <p>個性学: {myDisplayProfile.koseigaku}</p>
+                  </>
+                ) : null}
               </div>
               <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
                 <p className="font-semibold text-zinc-900">四柱推命（お相手）</p>
-                <p className="mt-1">陰陽五行: {partnerDisplayProfile.kanshi}（{partnerDisplayProfile.yinYang}）</p>
-                <p>九星気学: {partnerDisplayProfile.kyusei}</p>
-                <p>個性学: {partnerDisplayProfile.koseigaku}</p>
+                {partnerDisplayProfile ? (
+                  <>
+                    <p className="mt-1">陰陽五行: {partnerDisplayProfile.kanshi}（{partnerDisplayProfile.yinYangGogyo}）</p>
+                    <p>九星気学: {partnerDisplayProfile.kyusei}</p>
+                    <p>個性学: {partnerDisplayProfile.koseigaku}</p>
+                  </>
+                ) : null}
               </div>
             </div>
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
                 <p className="font-semibold text-zinc-900">五行バランス（お相手）</p>
-                <p className="mt-1">五行: {partnerDisplayProfile.gogyo}</p>
-                <p>主軸: {partnerDisplayProfile.gogyo}</p>
+                {partnerDisplayProfile ? <p className="mt-1">陰陽五行: {partnerDisplayProfile.yinYangGogyo}</p> : null}
               </div>
               <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
                 <p className="font-semibold text-zinc-900">九星気学（お相手）</p>
-                <p className="mt-1">本命星: {partnerDisplayProfile.kyusei}</p>
-                <p>月命星: {partnerDisplayProfile.kyusei}</p>
+                {partnerDisplayProfile ? <p className="mt-1">本命星: {partnerDisplayProfile.kyusei}</p> : null}
               </div>
             </div>
             <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">

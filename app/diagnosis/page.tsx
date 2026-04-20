@@ -14,29 +14,23 @@ export default function DiagnosisPage() {
   const [partnerBirthtime, setPartnerBirthtime] = useState("");
   const [didCompleteStep1, setDidCompleteStep1] = useState(false);
   const [showPartnerStep, setShowPartnerStep] = useState(false);
-  const user = {
-    birthDate: selfBirthdate || "1992-11-08",
-    birthTime: selfBirthtime || undefined,
-  };
-  const partner = {
-    birthDate: partnerBirthdate || "1995-03-21",
-    birthTime: partnerBirthtime || undefined,
-  };
-  const myBirthDate = user.birthDate;
-  const myBirthTime = user.birthTime;
-  const partnerBirthDate = partner.birthDate;
-  const partnerBirthTime = partner.birthTime;
+  const myBirthDate = selfBirthdate;
+  const partnerBirthDate = partnerBirthdate;
   const normalizedMyBirthDate = normalizeBirthDate(myBirthDate);
   const normalizedPartnerBirthDate = normalizeBirthDate(partnerBirthDate);
 
-  const myProfile = getFortuneProfile({
-    birthDate: user.birthDate,
-    birthTime: user.birthTime,
-  });
-  const partnerProfile = getFortuneProfile({
-    birthDate: partner.birthDate,
-    birthTime: partner.birthTime,
-  });
+  const myProfile = didCompleteStep1 && selfBirthdate
+    ? getFortuneProfile({
+        birthDate: selfBirthdate,
+        birthTime: selfBirthtime || undefined,
+      })
+    : null;
+  const partnerProfile = partnerBirthdate
+    ? getFortuneProfile({
+        birthDate: partnerBirthdate,
+        birthTime: partnerBirthtime || undefined,
+      })
+    : null;
 
   console.log("birthDate raw", myBirthDate);
   console.log("birthDate normalized", normalizedMyBirthDate);
@@ -45,8 +39,8 @@ export default function DiagnosisPage() {
   console.log("birthDate normalized", normalizedPartnerBirthDate);
   console.log("profile", partnerProfile);
   const tendencyComment = myProfile
-    ? `干支「${myProfile.kanshi}」と陰陽五行「${myProfile.yinYang}」の傾向から、${myProfile.koseigaku}として関係を作るタイプです。`
-    : "生年月日の形式を確認中です。入力後にあなたの傾向を表示します。";
+    ? `干支「${myProfile.kanshi}」と陰陽五行「${myProfile.yinYangGogyo}」の傾向から、${myProfile.koseigaku}として関係を作るタイプです。`
+    : "";
 
   const scrollToPartnerInput = () => {
     setShowPartnerStep(true);
@@ -68,7 +62,7 @@ export default function DiagnosisPage() {
     event.preventDefault();
     if (!partnerBirthdate) return;
 
-    const selfBirthDate = selfBirthdate || "1992-11-08";
+    const selfBirthDate = selfBirthdate;
     const selfBirthTime = selfBirthtime || undefined;
     const partnerBirthTime = partnerBirthtime || undefined;
 
@@ -180,16 +174,19 @@ export default function DiagnosisPage() {
               STEP2
             </p>
             <h3 className="mt-1 text-lg font-semibold text-zinc-950">
-              あなたは「{myProfile?.koseigaku ?? "-"}」です
+              あなたは「{myProfile ? myProfile.koseigaku : "—"}」です
             </h3>
-            <div className="mt-2 text-xs text-gray-500">
-              {myProfile?.kanshi ?? "-"}（{myProfile?.yinYang ?? "-"}）｜{myProfile?.kyusei ?? "-"}｜
-              {myProfile?.koseigaku ?? "-"}
-            </div>
+            {myProfile ? (
+              <div className="mt-2 text-xs text-gray-500">
+                {myProfile.kanshi}（{myProfile.yinYangGogyo}）｜{myProfile.kyusei}｜{myProfile.koseigaku}
+              </div>
+            ) : null}
             <div className="mt-4 grid gap-3">
               <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3">
                 <p className="text-xs font-medium text-zinc-600">あなたの傾向</p>
-                <p className="mt-1 text-sm font-semibold text-zinc-900">{tendencyComment}</p>
+                {tendencyComment ? (
+                  <p className="mt-1 text-sm font-semibold text-zinc-900">{tendencyComment}</p>
+                ) : null}
               </div>
             </div>
             <p className="mt-4 text-sm leading-relaxed text-zinc-700">
@@ -221,17 +218,25 @@ export default function DiagnosisPage() {
               <div className="rounded-xl border border-zinc-200 bg-white p-4">
                 <h4 className="text-base font-bold text-zinc-900">あなた</h4>
                 <div className="mt-3 space-y-1 text-sm text-gray-700">
-                  <div>陰陽五行: {myProfile?.kanshi ?? "-"}（{myProfile?.yinYang ?? "-"}）</div>
-                  <div>九星気学: {myProfile?.kyusei ?? "-"}</div>
-                  <div>個性学: {myProfile?.koseigaku ?? "-"}</div>
+                  {myProfile ? (
+                    <>
+                      <div>陰陽五行: {myProfile.kanshi}（{myProfile.yinYangGogyo}）</div>
+                      <div>九星気学: {myProfile.kyusei}</div>
+                      <div>個性学: {myProfile.koseigaku}</div>
+                    </>
+                  ) : null}
                 </div>
               </div>
               <div className="rounded-xl border border-zinc-200 bg-white p-4">
                 <h4 className="text-base font-bold text-zinc-900">お相手</h4>
                 <div className="mt-3 space-y-1 text-sm text-gray-700">
-                  <div>陰陽五行: {partnerProfile?.kanshi ?? "-"}（{partnerProfile?.yinYang ?? "-"}）</div>
-                  <div>九星気学: {partnerProfile?.kyusei ?? "-"}</div>
-                  <div>個性学: {partnerProfile?.koseigaku ?? "-"}</div>
+                  {partnerProfile ? (
+                    <>
+                      <div>陰陽五行: {partnerProfile.kanshi}（{partnerProfile.yinYangGogyo}）</div>
+                      <div>九星気学: {partnerProfile.kyusei}</div>
+                      <div>個性学: {partnerProfile.koseigaku}</div>
+                    </>
+                  ) : null}
                 </div>
               </div>
             </div>

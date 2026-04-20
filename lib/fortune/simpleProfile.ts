@@ -7,8 +7,7 @@ export type SimpleFortuneInput = {
 
 export type SimpleFortuneProfile = {
   kanshi: string;
-  gogyo: string;
-  yinYang: string;
+  yinYangGogyo: string;
   kyusei: string;
   koseigaku: string;
   luckyDirection: string;
@@ -22,21 +21,14 @@ const directionByGogyo: Record<"木" | "火" | "土" | "金" | "水", string> = 
   水: "北",
 };
 
-export function getSimpleFortuneProfile(input: SimpleFortuneInput): SimpleFortuneProfile {
+export function getSimpleFortuneProfile(input: SimpleFortuneInput): SimpleFortuneProfile | null {
   const core = getFortuneProfile({ birthDate: input.birthDate, birthTime: input.birthTime });
   if (!core) {
-    console.error("[fortune] getSimpleFortuneProfile fallback", input);
-    return {
-      kanshi: "-",
-      gogyo: "木",
-      yinYang: "木の陽",
-      kyusei: "-",
-      koseigaku: "-",
-      luckyDirection: "東",
-    };
+    return null;
   }
+  const gogyo = core.yinYangGogyo.charAt(0) as keyof typeof directionByGogyo;
   return {
     ...core,
-    luckyDirection: directionByGogyo[core.gogyo as keyof typeof directionByGogyo] ?? "東",
+    luckyDirection: directionByGogyo[gogyo] ?? "東",
   };
 }
