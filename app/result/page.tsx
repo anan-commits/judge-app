@@ -99,7 +99,7 @@ function buildDisplayProfile(birthdate: string, birthtime: string) {
     birthtime,
     kanshi: fortune.kanshi,
     yinYangGogyo: fortune.yinYangGogyo,
-    nineStar: fortune.kyusei,
+    nineStar: `${fortune.honmei}（本命）｜${fortune.getsumei}（月命）`,
     personality: fortune.koseigaku,
     luckyDirection: "-",
   };
@@ -536,7 +536,7 @@ function ResultPageContent() {
                 {myDisplayProfile ? (
                   <>
                     <p className="mt-1">陰陽五行: {myDisplayProfile.kanshi}（{myDisplayProfile.yinYangGogyo}）</p>
-                    <p>九星気学: {myDisplayProfile.kyusei}</p>
+                    <p>九星気学: {myDisplayProfile.honmei}（本命）｜{myDisplayProfile.getsumei}（月命）</p>
                     <p>個性学: {myDisplayProfile.koseigaku}</p>
                   </>
                 ) : null}
@@ -546,7 +546,7 @@ function ResultPageContent() {
                 {partnerDisplayProfile ? (
                   <>
                     <p className="mt-1">陰陽五行: {partnerDisplayProfile.kanshi}（{partnerDisplayProfile.yinYangGogyo}）</p>
-                    <p>九星気学: {partnerDisplayProfile.kyusei}</p>
+                    <p>九星気学: {partnerDisplayProfile.honmei}（本命）｜{partnerDisplayProfile.getsumei}（月命）</p>
                     <p>個性学: {partnerDisplayProfile.koseigaku}</p>
                   </>
                 ) : null}
@@ -559,7 +559,9 @@ function ResultPageContent() {
               </div>
               <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
                 <p className="font-semibold text-zinc-900">九星気学（お相手）</p>
-                {partnerDisplayProfile ? <p className="mt-1">本命星: {partnerDisplayProfile.kyusei}</p> : null}
+                {partnerDisplayProfile ? (
+                  <p className="mt-1">九星気学: {partnerDisplayProfile.honmei}（本命）｜{partnerDisplayProfile.getsumei}（月命）</p>
+                ) : null}
               </div>
             </div>
             <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
@@ -575,6 +577,9 @@ function ResultPageContent() {
                   ))}
                 </ul>
               ) : null}
+              <p className="mt-2 text-xs text-zinc-500">
+                ※本サービスは標準的な暦法に基づいて算出しています
+              </p>
             </div>
           </div>
         ) : null}

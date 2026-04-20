@@ -8,7 +8,8 @@ export type SimpleFortuneInput = {
 export type SimpleFortuneProfile = {
   kanshi: string;
   yinYangGogyo: string;
-  kyusei: string;
+  honmei: string;
+  getsumei: string;
   koseigaku: string;
   luckyDirection: string;
 };

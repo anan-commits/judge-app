@@ -1,24 +1,14 @@
 import { calculateYinYangGogyo } from "./yinyangGogyo";
 import { normalizeBirthDate } from "./normalizeBirthDate";
+import { calcNineStarKi } from "./nineStarKi";
 
 export type FortuneProfile = {
   kanshi: string;
   yinYangGogyo: string;
-  kyusei: string;
+  honmei: string;
+  getsumei: string;
   koseigaku: string;
 };
-
-const kyuseiMap = [
-  "一白水星",
-  "二黒土星",
-  "三碧木星",
-  "四緑木星",
-  "五黄土星",
-  "六白金星",
-  "七赤金星",
-  "八白土星",
-  "九紫火星",
-] as const;
 
 const koseigakuList = ["大物思考完璧", "城思考", "人思考"] as const;
 const kanshiByDestinyNumber: Record<number, string> = {
@@ -71,14 +61,20 @@ export function getFortuneProfile(input: {
     return null;
   }
   const yinYangGogyo = gogyoResult.label;
-  const kyusei = kyuseiMap[(year + 2) % 9];
+  const nineStar = calcNineStarKi({
+    birthDate: normalizedBirthDate,
+    birthTime: input.birthTime,
+  });
+  const honmei = nineStar.honmei;
+  const getsumei = nineStar.getsumei ?? "";
   // 1971-01 case: (1971+1+2)%3 => 0 => "大物思考完璧"
   const koseigaku = koseigakuList[(year + month + 2) % 3];
 
   const profile = {
     kanshi,
     yinYangGogyo,
-    kyusei,
+    honmei,
+    getsumei,
     koseigaku,
   };
 

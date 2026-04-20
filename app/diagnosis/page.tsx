@@ -193,7 +193,8 @@ export default function DiagnosisPage() {
             </h3>
             {myProfile ? (
               <div className="mt-2 text-xs text-gray-500">
-                {myProfile.kanshi}（{myProfile.yinYangGogyo}）｜{myProfile.kyusei}｜{myProfile.koseigaku}
+                {myProfile.kanshi}（{myProfile.yinYangGogyo}）｜{myProfile.honmei}（本命）｜
+                {myProfile.getsumei}（月命）｜{myProfile.koseigaku}
               </div>
             ) : null}
             <div className="mt-4 grid gap-3">
@@ -236,7 +237,7 @@ export default function DiagnosisPage() {
                   {myProfile ? (
                     <>
                       <div>陰陽五行: {myProfile.kanshi}（{myProfile.yinYangGogyo}）</div>
-                      <div>九星気学: {myProfile.kyusei}</div>
+                      <div>九星気学: {myProfile.honmei}（本命）｜{myProfile.getsumei}（月命）</div>
                       <div>個性学: {myProfile.koseigaku}</div>
                     </>
                   ) : null}
@@ -248,13 +249,16 @@ export default function DiagnosisPage() {
                   {partnerProfile ? (
                     <>
                       <div>陰陽五行: {partnerProfile.kanshi}（{partnerProfile.yinYangGogyo}）</div>
-                      <div>九星気学: {partnerProfile.kyusei}</div>
+                      <div>九星気学: {partnerProfile.honmei}（本命）｜{partnerProfile.getsumei}（月命）</div>
                       <div>個性学: {partnerProfile.koseigaku}</div>
                     </>
                   ) : null}
                 </div>
               </div>
             </div>
+            <p className="mt-3 text-xs text-zinc-500">
+              ※本サービスは標準的な暦法に基づいて算出しています
+            </p>
 
             <form onSubmit={handleFinalSubmit} className="mt-4 space-y-4">
               <div className="space-y-1.5">

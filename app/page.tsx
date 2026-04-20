@@ -56,7 +56,7 @@ export default function Home() {
       birthtime: myBirthTime || "未入力",
       kanshi: myProfile?.kanshi,
       yinYangGogyo: myProfile?.yinYangGogyo,
-      nineStar: myProfile?.kyusei,
+      nineStar: myProfile ? `${myProfile.honmei}（本命）｜${myProfile.getsumei}（月命）` : null,
       personality: myProfile?.koseigaku,
       luckyDirection: null,
     },
@@ -66,7 +66,9 @@ export default function Home() {
       birthtime: partnerBirthTime || "未入力",
       kanshi: partnerProfile?.kanshi,
       yinYangGogyo: partnerProfile?.yinYangGogyo,
-      nineStar: partnerProfile?.kyusei,
+      nineStar: partnerProfile
+        ? `${partnerProfile.honmei}（本命）｜${partnerProfile.getsumei}（月命）`
+        : null,
       personality: partnerProfile?.koseigaku,
       luckyDirection: null,
     },
