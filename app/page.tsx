@@ -1,28 +1,76 @@
+ "use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { getFortuneProfile } from "../lib/fortune/getFortuneProfile";
+
+const LATEST_INPUT_KEY = "judge_latest_input";
+
+type LatestInput = {
+  myBirthDate: string;
+  myBirthTime?: string;
+  partnerBirthDate: string;
+  partnerBirthTime?: string;
+};
 
 export default function Home() {
-  const statuses = {
-    self: {
+  const [latestInput, setLatestInput] = useState<LatestInput | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(LATEST_INPUT_KEY);
+      if (!raw) {
+        setLatestInput(null);
+        return;
+      }
+      const parsed = JSON.parse(raw) as LatestInput;
+      if (!parsed.myBirthDate || !parsed.partnerBirthDate) {
+        setLatestInput(null);
+        return;
+      }
+      setLatestInput(parsed);
+    } catch (error) {
+      console.error("[top] failed to parse latest input", error);
+      setLatestInput(null);
+    }
+  }, []);
+
+  const myBirthDate = latestInput?.myBirthDate;
+  const myBirthTime = latestInput?.myBirthTime || "";
+  const partnerBirthDate = latestInput?.partnerBirthDate;
+  const partnerBirthTime = latestInput?.partnerBirthTime || "";
+
+  const myProfile = getFortuneProfile({
+    birthDate: myBirthDate,
+    birthTime: myBirthTime || undefined,
+  });
+  const partnerProfile = getFortuneProfile({
+    birthDate: partnerBirthDate,
+    birthTime: partnerBirthTime || undefined,
+  });
+
+  const statuses = [
+    {
       label: "自分",
-      birthdate: "1992-11-08",
-      birthtime: "08:24",
-      dayStem: "甲",
-      fiveElement: "木",
-      nineStar: "三碧木星",
-      personality: "調和型",
-      luckyDirection: "東南",
+      birthdate: myBirthDate || "未入力",
+      birthtime: myBirthTime || "未入力",
+      kanshi: myProfile?.kanshi,
+      yinYangGogyo: myProfile?.yinYangGogyo,
+      nineStar: myProfile?.kyusei,
+      personality: myProfile?.koseigaku,
+      luckyDirection: null,
     },
-    partner: {
+    {
       label: "相手",
-      birthdate: "1994-03-21",
-      birthtime: "21:10",
-      dayStem: "庚",
-      fiveElement: "金",
-      nineStar: "七赤金星",
-      personality: "実行型",
-      luckyDirection: "北西",
+      birthdate: partnerBirthDate || "未入力",
+      birthtime: partnerBirthTime || "未入力",
+      kanshi: partnerProfile?.kanshi,
+      yinYangGogyo: partnerProfile?.yinYangGogyo,
+      nineStar: partnerProfile?.kyusei,
+      personality: partnerProfile?.koseigaku,
+      luckyDirection: null,
     },
-  } as const;
+  ] as const;
 
   const history = [
     {
@@ -57,6 +105,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-[#f7f7f5] text-zinc-900">
+      <div style={{ background: "red", color: "white" }}>TOP CARD DEBUG</div>
       <header className="border-b border-zinc-200/80 bg-white">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6 md:px-10">
           <div className="flex items-center gap-4">
@@ -76,7 +125,7 @@ export default function Home() {
 
       <section className="mx-auto max-w-6xl space-y-5 px-4 py-6 md:px-10 md:py-8">
         <div className="grid gap-5 md:grid-cols-2">
-          {[statuses.self, statuses.partner].map((person) => (
+          {statuses.map((person) => (
             <article
               key={person.label}
               className="rounded-3xl border border-zinc-200/90 bg-white p-6 shadow-[0_8px_30px_rgba(15,23,42,0.04)]"
@@ -99,11 +148,11 @@ export default function Home() {
               <div className="mt-4 space-y-1.5 text-sm text-zinc-700">
                 <p>生年月日: {person.birthdate}</p>
                 <p>出生時間: {person.birthtime}</p>
-                <p>日柱天干: {person.dayStem}</p>
-                <p>五行: {person.fiveElement}</p>
-                <p>九星気学: {person.nineStar}</p>
-                <p>個性学: {person.personality}</p>
-                <p>吉方位: {person.luckyDirection}</p>
+                {person.kanshi ? <p>日柱天干: {person.kanshi}</p> : null}
+                {person.yinYangGogyo ? <p>五行: {person.yinYangGogyo}</p> : null}
+                {person.nineStar ? <p>九星気学: {person.nineStar}</p> : null}
+                {person.personality ? <p>個性学: {person.personality}</p> : null}
+                {person.luckyDirection ? <p>吉方位: {person.luckyDirection}</p> : null}
               </div>
             </article>
           ))}
