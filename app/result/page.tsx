@@ -20,6 +20,14 @@ const selfProfile: PersonProfile = {
 
 const dayStems = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"] as const;
 const luckyDirections = ["北", "北東", "東", "南東", "南", "南西", "西", "北西"] as const;
+/** 刺さる一言（関係性の本質）— MVPはダミー。後から診断ロジックと接続 */
+const RELATIONSHIP_ESSENCE_DUMMY = {
+  /** 「この2人は〇〇な関係です」の〇〇部分 */
+  relationCore: "長く続くが温度差が出やすい",
+  /** 「今の状態では〇〇が起きやすいです」の〇〇部分 */
+  situationCore: "返信のペース差からくるモヤモヤ",
+} as const;
+
 const nineStarLabels = [
   "",
   "一白水星",
@@ -60,6 +68,37 @@ function buildDisplayProfile(base: PersonProfile) {
     personality: toPersonalityLabel(base.personalityType),
     luckyDirection: luckyDirections[seed % luckyDirections.length],
   };
+}
+
+function RelationshipEssenceSection() {
+  const { relationCore, situationCore } = RELATIONSHIP_ESSENCE_DUMMY;
+  return (
+    <section
+      className="border-b-2 border-amber-300/70 bg-gradient-to-br from-amber-50 via-orange-50/95 to-rose-50/50 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.65)]"
+      aria-labelledby="relationship-essence-heading"
+    >
+      <div className="mx-auto max-w-6xl px-5 py-8 sm:px-8 md:px-10 md:py-10">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-900/65">
+          刺さる一言（関係性の本質）
+        </p>
+        <h2
+          id="relationship-essence-heading"
+          className="mt-3 text-xl font-bold leading-snug tracking-tight text-amber-950 sm:text-2xl sm:leading-snug"
+        >
+          この2人は
+          <span className="mx-0.5 text-amber-900 underline decoration-amber-400/90 decoration-2 underline-offset-4">
+            {relationCore}
+          </span>
+          な関係です
+        </h2>
+        <p className="mt-4 max-w-2xl text-sm font-medium leading-relaxed text-amber-950/90 sm:text-base">
+          今の状態では
+          <span className="font-semibold text-amber-950">{situationCore}</span>
+          が起きやすいです
+        </p>
+      </div>
+    </section>
+  );
 }
 
 function ResultPersonHeader({ label, initial }: { label: string; initial: string }) {
@@ -226,6 +265,8 @@ export default function ResultPage() {
           </span>
         </div>
       </header>
+
+      <RelationshipEssenceSection />
 
       <section className="border-b border-zinc-200/80 bg-white">
         <div className="mx-auto max-w-6xl px-6 py-14 md:px-10 md:py-18">
