@@ -1,47 +1,37 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-type QuickInsight = {
+type SelfInsight = {
+  typeName: string;
   personality: string;
   loveStyle: string;
-  comment: string;
 };
 
-const QUICK_INSIGHT_TABLE: QuickInsight[] = [
+const SELF_INSIGHTS: SelfInsight[] = [
   {
+    typeName: "共感バランス型",
     personality: "慎重に相手を見極める観察型",
     loveStyle: "安心感を積み上げるほど深く続くタイプ",
-    comment:
-      "最初は距離を取りますが、信頼ができると一気に誠実さが伝わるタイプです。焦らず段階を作るほど、関係の質が上がります。",
   },
   {
+    typeName: "感受先読み型",
     personality: "感受性が高い共感型",
     loveStyle: "言葉より空気感で温度を読むタイプ",
-    comment:
-      "相手の些細な反応に気づける強みがあります。気持ちを抱え込みすぎず、言葉で小さく共有すると関係が安定しやすいです。",
   },
   {
+    typeName: "直感推進型",
     personality: "行動が早い推進型",
     loveStyle: "決めたら一気に距離を縮めるタイプ",
-    comment:
-      "進展を作る力が強い反面、ペース差で誤解が起きやすい傾向もあります。タイミングを合わせる意識で強みが活きます。",
   },
   {
+    typeName: "安定調整型",
     personality: "調整力が高いバランス型",
     loveStyle: "衝突を避けつつ長く続けるタイプ",
-    comment:
-      "相手に合わせるのが上手で関係は続きやすいです。必要な場面で本音を出すほど、あなたらしさが伝わり関係が深まります。",
   },
 ];
-
-function pickQuickInsight(birthdate: string): QuickInsight {
-  const normalized = birthdate.replaceAll("-", "");
-  const score = normalized.split("").reduce((acc, v) => acc + (Number(v) || 0), 0);
-  return QUICK_INSIGHT_TABLE[score % QUICK_INSIGHT_TABLE.length] ?? QUICK_INSIGHT_TABLE[0];
-}
 
 export default function DiagnosisPage() {
   const router = useRouter();
@@ -51,11 +41,18 @@ export default function DiagnosisPage() {
   const [partnerBirthtime, setPartnerBirthtime] = useState("");
   const [didCompleteStep1, setDidCompleteStep1] = useState(false);
   const [showPartnerStep, setShowPartnerStep] = useState(false);
+  const [selfInsight] = useState<SelfInsight>(() => {
+    const i = Math.floor(Math.random() * SELF_INSIGHTS.length);
+    return SELF_INSIGHTS[i] ?? SELF_INSIGHTS[0];
+  });
 
-  const insight = useMemo(
-    () => (didCompleteStep1 && selfBirthdate ? pickQuickInsight(selfBirthdate) : null),
-    [didCompleteStep1, selfBirthdate]
-  );
+  const scrollToPartnerInput = () => {
+    setShowPartnerStep(true);
+    setTimeout(() => {
+      const target = document.getElementById("partner-step");
+      target?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+  };
 
   const handleStep1Submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -145,43 +142,41 @@ export default function DiagnosisPage() {
           </form>
         </article>
 
-        {didCompleteStep1 && insight ? (
-          <article className="mt-5 rounded-3xl border border-emerald-200/80 bg-emerald-50/60 p-4 shadow-sm">
-            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-emerald-700">
+        {didCompleteStep1 ? (
+          <article className="mt-5 rounded-3xl border border-zinc-200/90 bg-white p-4 shadow-sm">
+            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-500">
               STEP2
             </p>
-            <h3 className="mt-1 text-lg font-semibold text-emerald-950">あなたの簡易分析</h3>
+            <h3 className="mt-1 text-lg font-semibold text-zinc-950">
+              あなたは「{selfInsight.typeName}」です
+            </h3>
             <div className="mt-4 grid gap-3">
-              <div className="rounded-2xl border border-emerald-200 bg-white/80 px-4 py-3">
-                <p className="text-xs font-medium text-emerald-700">性格</p>
-                <p className="mt-1 text-sm font-semibold text-zinc-900">{insight.personality}</p>
+              <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3">
+                <p className="text-xs font-medium text-zinc-600">性格</p>
+                <p className="mt-1 text-sm font-semibold text-zinc-900">{selfInsight.personality}</p>
               </div>
-              <div className="rounded-2xl border border-emerald-200 bg-white/80 px-4 py-3">
-                <p className="text-xs font-medium text-emerald-700">恋愛傾向</p>
-                <p className="mt-1 text-sm font-semibold text-zinc-900">{insight.loveStyle}</p>
-              </div>
-              <div className="rounded-2xl border border-emerald-200 bg-white/80 px-4 py-3">
-                <p className="text-xs font-medium text-emerald-700">短い分析コメント</p>
-                <p className="mt-1 text-sm leading-relaxed text-zinc-700">{insight.comment}</p>
+              <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3">
+                <p className="text-xs font-medium text-zinc-600">恋愛傾向</p>
+                <p className="mt-1 text-sm font-semibold text-zinc-900">{selfInsight.loveStyle}</p>
               </div>
             </div>
             <p className="mt-4 text-sm leading-relaxed text-zinc-700">
-              相性だけでは関係は決まりません。運気・タイミング・行動で結果は変わります。
+              人との関係は相性だけでは決まりません。運気・タイミング・行動で結果は大きく変わります。
             </p>
             {!showPartnerStep ? (
               <button
                 type="button"
-                onClick={() => setShowPartnerStep(true)}
+                onClick={scrollToPartnerInput}
                 className="mt-4 inline-flex h-11 min-h-[44px] w-full items-center justify-center rounded-full bg-zinc-900 px-6 text-sm font-semibold text-white hover:bg-zinc-800"
               >
-                相手も見る
+                相手との関係を見る
               </button>
             ) : null}
           </article>
         ) : null}
 
         {didCompleteStep1 && showPartnerStep ? (
-          <article className="mt-5 rounded-3xl border border-zinc-200/90 bg-white p-4 shadow-sm">
+          <article id="partner-step" className="mt-5 rounded-3xl border border-zinc-200/90 bg-white p-4 shadow-sm">
             <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-500">
               STEP3
             </p>
