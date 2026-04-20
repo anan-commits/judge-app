@@ -53,14 +53,18 @@ const UNDIAGNOSED_LIGHT_REPLY_T3 =
   "まず24〜48時間は間を空けるのが無難です。要点は1つに絞った短文にすると負担が少ないです。（※五行・九星などの統合視点は診断後に案内します）";
 
 type ChatMode = "loading" | "full" | "diagnosed" | "undiagnosed";
-type StrategyMode = "reply" | "position" | "future";
+type StrategyMode = "reply" | "position" | "future" | "line";
 
 type StrategyAnalysis = {
+  kind: "generic" | "line";
   title: string;
   line1: string;
   line2: string;
   line3: string;
   paidLine: string;
+  lineDraft?: string;
+  ngList?: string[];
+  point?: string;
 };
 
 type LiveAnalysisEntry = {
@@ -221,6 +225,7 @@ function buildStrategyAnalysis(mode: StrategyMode, text: string): StrategyAnalys
     const tone = detectTone(text);
     const lead = tone === "ネガティブ" ? "相手優位" : "拮抗";
     return {
+      kind: "generic",
       title: "返信分析",
       line1: `感情トーン: ${tone}`,
       line2: `何が起きてるか: 返答に迷いがあり、温度合わせ待ちの状態です。`,
@@ -230,6 +235,7 @@ function buildStrategyAnalysis(mode: StrategyMode, text: string): StrategyAnalys
   }
   if (mode === "position") {
     return {
+      kind: "generic",
       title: "ポジション分析",
       line1: "本命: 感情は強いが慎重で、決定打待ちの位置",
       line2: "安定: 連絡継続はしやすいが熱量は上がりにくい位置",
@@ -237,7 +243,23 @@ function buildStrategyAnalysis(mode: StrategyMode, text: string): StrategyAnalys
       paidLine: "具体的LINE案: 本命化に寄せる『安心＋余白』の一文テンプレを提示できます。",
     };
   }
+  if (mode === "line") {
+    const compact = text.replaceAll("\n", " ").slice(0, 80);
+    const lineDraft = `急かすつもりはないよ。${compact ? `「${compact}」の件も、` : ""}落ち着いたタイミングで一言だけもらえたら嬉しい。`;
+    return {
+      kind: "line",
+      title: "LINE生成",
+      line1: `相手の温度を下げずに返答しやすい余白を作る局面です。`,
+      line2: "",
+      line3: "",
+      paidLine: lineDraft,
+      lineDraft,
+      ngList: ["感情のぶつけ連投", "返事を急かす圧のある文", "過去の不満を一度に書く"],
+      point: "結論を1つに絞り、相手が返しやすい短文で送るほど反応率が上がります。",
+    };
+  }
   return {
+    kind: "generic",
     title: "未来分岐",
     line1: "このままいくと: 連絡は続くが、曖昧な関係で停滞しやすいです。",
     line2: "ミスると: 追い連絡で相手の防衛が上がり、返信間隔がさらに伸びます。",
@@ -253,6 +275,59 @@ function StrategyAnalysisCard({
   analysis: StrategyAnalysis;
   locked: boolean;
 }) {
+  const maskedLine = `${(analysis.lineDraft ?? "").slice(0, 14)}…（続きは有料）`;
+  const lineForDisplay = locked ? maskedLine : analysis.lineDraft ?? "";
+
+  const copyLine = async () => {
+    if (!analysis.lineDraft) return;
+    const text = locked ? lineForDisplay : analysis.lineDraft;
+    try {
+      await navigator.clipboard.writeText(text);
+      console.log("[line-copy] copied");
+    } catch {
+      console.log("[line-copy] failed");
+    }
+  };
+
+  if (analysis.kind === "line") {
+    return (
+      <article className="max-w-[96%] rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm leading-relaxed text-zinc-800">
+        <p className="text-xs font-semibold tracking-wide text-zinc-500">{analysis.title}</p>
+        <div className="mt-2 space-y-3">
+          <div>
+            <p className="text-xs font-semibold text-zinc-600">■状況</p>
+            <p className="mt-1">{analysis.line1}</p>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-zinc-600">■やってはいけないこと</p>
+            <ul className="mt-1 space-y-1">
+              {(analysis.ngList ?? []).map((item) => (
+                <li key={item}>・{item}</li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-zinc-600">■今送るべきLINE</p>
+            <p aria-hidden={locked || undefined} className={`mt-1 ${locked ? "select-none blur-[2px]" : ""}`}>
+              👉 {lineForDisplay}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-zinc-600">■ポイント</p>
+            <p className="mt-1">{analysis.point}</p>
+          </div>
+          <button
+            type="button"
+            onClick={copyLine}
+            className="inline-flex h-10 min-h-[40px] w-full items-center justify-center rounded-full border border-zinc-300 bg-white px-4 text-sm font-medium text-zinc-700 hover:bg-zinc-100"
+          >
+            コピー
+          </button>
+        </div>
+      </article>
+    );
+  }
+
   return (
     <article className="max-w-[96%] rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm leading-relaxed text-zinc-800">
       <p className="text-xs font-semibold tracking-wide text-zinc-500">{analysis.title}</p>
@@ -515,6 +590,7 @@ function ChatPageContent() {
                 { key: "reply", label: "返信分析" },
                 { key: "position", label: "ポジション分析" },
                 { key: "future", label: "未来分岐" },
+                { key: "line", label: "LINE生成" },
               ].map((item) => (
                 <button
                   key={item.key}
