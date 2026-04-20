@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { getFortuneProfile } from "../../lib/fortune/getFortuneProfile";
 import { normalizeBirthDate } from "../../lib/fortune/normalizeBirthDate";
 
+const LATEST_INPUT_KEY = "judge_latest_input";
+
 export default function DiagnosisPage() {
   const router = useRouter();
   const [selfBirthdate, setSelfBirthdate] = useState("");
@@ -90,11 +92,15 @@ export default function DiagnosisPage() {
       sessionStorage.removeItem("judge-code:latest-diagnosis");
     }
 
-    // 既存互換: /result で参照するキーは維持
-    sessionStorage.setItem("judge-code:self-birthdate", selfBirthDate);
-    sessionStorage.setItem("judge-code:self-birthtime", selfBirthtime || "");
-    sessionStorage.setItem("judge-code:partner-birthdate", partnerBirthdate);
-    sessionStorage.setItem("judge-code:partner-birthtime", partnerBirthtime || "12:00");
+    localStorage.setItem(
+      LATEST_INPUT_KEY,
+      JSON.stringify({
+        myBirthDate: selfBirthDate,
+        myBirthTime: selfBirthtime || "",
+        partnerBirthDate: partnerBirthdate,
+        partnerBirthTime: partnerBirthtime || "",
+      })
+    );
     router.push("/result");
   };
 

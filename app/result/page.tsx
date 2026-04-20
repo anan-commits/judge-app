@@ -12,6 +12,15 @@ import type { FortuneResult } from "../../lib/fortune/types";
 import { getFortuneProfile } from "../../lib/fortune/getFortuneProfile";
 import { normalizeBirthDate } from "../../lib/fortune/normalizeBirthDate";
 
+const LATEST_INPUT_KEY = "judge_latest_input";
+
+type LatestInput = {
+  myBirthDate: string;
+  myBirthTime?: string;
+  partnerBirthDate: string;
+  partnerBirthTime?: string;
+};
+
 type RelationshipConversionPattern = {
   essence: string;
   tendency: string;
@@ -63,14 +72,6 @@ const THREE_LAYER_MODEL_DUMMY: ThreeLayerModel = {
   reachableLabel: "90点以上",
   correctionHint: "連絡頻度と感情表現の順番で改善余地あり",
   reachableHint: "今月の運気タイミングを使えば大きく伸ばせる",
-};
-
-const selfProfile: PersonProfile = {
-  birthdate: "1992-11-08",
-  birthtime: "08:24",
-  fiveElement: "wood",
-  nineStar: 3,
-  personalityType: 7,
 };
 
 /**
@@ -340,32 +341,28 @@ function ResultPageContent() {
   const isFreeUser = searchParams.get("full") !== "1";
   const [saved, setSaved] = useState(false);
   const [checkedSession, setCheckedSession] = useState(false);
-  const [activePartnerIndex] = useState(0);
-  const [partnerProfiles, setPartnerProfiles] = useState<PersonProfile[]>([]);
-  const [resultsByPartner, setResultsByPartner] = useState<CompatibilityResult[]>([]);
+  const [latestInput, setLatestInput] = useState<LatestInput | null>(null);
   const [diagnosisData, setDiagnosisData] = useState<DiagnosisPayload | null>(null);
-  const [selfBirthdate, setSelfBirthdate] = useState(selfProfile.birthdate);
-  const [selfBirthtime, setSelfBirthtime] = useState(selfProfile.birthtime);
 
   useEffect(() => {
-    const birthdate = sessionStorage.getItem("judge-code:partner-birthdate");
-    const birthtime = sessionStorage.getItem("judge-code:partner-birthtime");
+    const latestInputRaw = localStorage.getItem(LATEST_INPUT_KEY);
     const diagnosisRaw = sessionStorage.getItem("judge-code:latest-diagnosis");
-    const storedSelfBirthdate = sessionStorage.getItem("judge-code:self-birthdate");
-    const storedSelfBirthtime = sessionStorage.getItem("judge-code:self-birthtime");
-
-    if (!birthdate || !birthtime) {
+    if (!latestInputRaw) {
       router.replace("/diagnosis");
       return;
     }
 
-    if (storedSelfBirthdate) setSelfBirthdate(storedSelfBirthdate);
-    if (storedSelfBirthtime) setSelfBirthtime(storedSelfBirthtime);
-
-    const partner = buildPartnerProfile(birthdate, birthtime);
-    const partnerList = [partner];
-    setPartnerProfiles(partnerList);
-    setResultsByPartner(partnerList.map((item) => calculateCompatibility(selfProfile, item)));
+    try {
+      const parsed = JSON.parse(latestInputRaw) as LatestInput;
+      if (!parsed.myBirthDate || !parsed.partnerBirthDate) {
+        router.replace("/diagnosis");
+        return;
+      }
+      setLatestInput(parsed);
+    } catch {
+      router.replace("/diagnosis");
+      return;
+    }
     if (diagnosisRaw) {
       try {
         const parsed = JSON.parse(diagnosisRaw) as DiagnosisPayload;
@@ -380,15 +377,16 @@ function ResultPageContent() {
   }, [router]);
 
   const handleSave = () => {
-    const activePartner = partnerProfiles[activePartnerIndex];
-    const activeResult = resultsByPartner[activePartnerIndex] ?? null;
+    if (!latestInput) return;
+    const selfPersonProfile = buildPartnerProfile(latestInput.myBirthDate, latestInput.myBirthTime || "");
+    const activePartner = buildPartnerProfile(
+      latestInput.partnerBirthDate,
+      latestInput.partnerBirthTime || ""
+    );
+    const activeResult = calculateCompatibility(selfPersonProfile, activePartner);
     const payload = {
       savedAt: new Date().toISOString(),
-      partners: partnerProfiles.map((profile, index) => ({
-        profile,
-        compatibility: resultsByPartner[index] ?? null,
-      })),
-      activePartnerIndex,
+      partners: [{ profile: activePartner, compatibility: activeResult }],
       partner: activePartner
         ? {
             birthdate: activePartner.birthdate,
@@ -411,28 +409,41 @@ function ResultPageContent() {
     );
   }
 
-  const activePartner = partnerProfiles[activePartnerIndex] ?? null;
-  const result = resultsByPartner[activePartnerIndex] ?? null;
+  if (!latestInput) {
+    return null;
+  }
+
+  const myBirthDate = latestInput.myBirthDate;
+  const myBirthTime = latestInput.myBirthTime || "";
+  const partnerBirthDate = latestInput.partnerBirthDate;
+  const partnerBirthTime = latestInput.partnerBirthTime || "";
+
+  const selfPersonProfile: PersonProfile = buildPartnerProfile(myBirthDate, myBirthTime);
+  const activePartner: PersonProfile = buildPartnerProfile(partnerBirthDate, partnerBirthTime);
+  const result: CompatibilityResult = calculateCompatibility(selfPersonProfile, activePartner);
   const myProfile = getFortuneProfile({
-    birthDate: selfBirthdate,
-    birthTime: selfBirthtime,
+    birthDate: myBirthDate,
+    birthTime: myBirthTime || undefined,
   });
   const partnerProfile = getFortuneProfile({
-    birthDate: activePartner?.birthdate,
-    birthTime: activePartner?.birthtime,
+    birthDate: partnerBirthDate,
+    birthTime: partnerBirthTime || undefined,
   });
   const myDisplayProfile = myProfile;
   const partnerDisplayProfile = partnerProfile;
-  const selfDisplay = buildDisplayProfile(selfBirthdate, selfBirthtime);
-  const partnerDisplay = activePartner
-    ? buildDisplayProfile(activePartner.birthdate, activePartner.birthtime)
-    : null;
-  const normalizedSelfBirthDate = normalizeBirthDate(selfBirthdate);
-  const normalizedPartnerBirthDate = normalizeBirthDate(activePartner?.birthdate);
-  console.log("birthDate raw", selfBirthdate);
+  const selfDisplay = buildDisplayProfile(myBirthDate, myBirthTime);
+  const partnerDisplay = buildDisplayProfile(partnerBirthDate, partnerBirthTime);
+  const normalizedSelfBirthDate = normalizeBirthDate(myBirthDate);
+  const normalizedPartnerBirthDate = normalizeBirthDate(partnerBirthDate);
+  console.log("RIGHT PAGE latestInput", latestInput);
+  console.log("RIGHT PAGE myBirthDate", myBirthDate);
+  console.log("RIGHT PAGE partnerBirthDate", partnerBirthDate);
+  console.log("RIGHT PAGE myProfile", myProfile);
+  console.log("RIGHT PAGE partnerProfile", partnerProfile);
+  console.log("birthDate raw", myBirthDate);
   console.log("birthDate normalized", normalizedSelfBirthDate);
   console.log("profile", myProfile);
-  console.log("birthDate raw", activePartner?.birthdate);
+  console.log("birthDate raw", partnerBirthDate);
   console.log("birthDate normalized", normalizedPartnerBirthDate);
   console.log("profile", partnerProfile);
   const recommendedAction = result?.actions[0] ?? "週1回15分の方針共有を設定する";
