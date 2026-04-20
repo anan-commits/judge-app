@@ -356,11 +356,12 @@ async function buildStrategyAnalysisViaApi(
     const data = (await res.json()) as {
       usedHistory?: boolean;
       generic?: { status?: string; action?: string; ng?: string; note?: string };
-      line?: { light?: string; lead?: string; reason?: string };
+      line?: { light?: string; standard?: string; lead?: string; reason?: string };
     };
 
     if (mode === "line") {
       const light = data.line?.light || "今日はありがとう。落ち着いたらまた話せると嬉しい。";
+      const standard = data.line?.standard || "今日はありがとう。今週どこかで少し話せると嬉しい。";
       const lead = data.line?.lead || "今週どこかで少し話せる？タイミング合わせたい。";
       return {
         kind: "line",
@@ -373,6 +374,7 @@ async function buildStrategyAnalysisViaApi(
         lineDraft: light,
         linePatterns: [
           { type: "軽め", text: light },
+          { type: "標準", text: standard },
           { type: "少し主導", text: lead },
         ],
         ngList: ["感情のぶつけ連投", "返事を急かす圧のある文", "過去の不満を一度に書く"],

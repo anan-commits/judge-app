@@ -10,30 +10,35 @@ type ChatRequestBody = {
 };
 
 function parseLineOutput(content: string) {
-  const lightMatch = content.match(/軽め：\s*「?([\s\S]*?)」?(?:\n|$)/);
-  const leadMatch = content.match(/主導：\s*「?([\s\S]*?)」?(?:\n|$)/);
+  const sectionMatch = content.match(/■今送るならこのLINE\s*([\s\S]*?)(?:\n理由：|$)/);
+  const lineBlock = sectionMatch?.[1] ?? content;
+  const lightMatch = lineBlock.match(/軽め：\s*「?([\s\S]*?)」?(?:\n|$)/);
+  const standardMatch = lineBlock.match(/標準：\s*「?([\s\S]*?)」?(?:\n|$)/);
+  const leadMatch = lineBlock.match(/(?:少し)?主導：\s*「?([\s\S]*?)」?(?:\n|$)/);
   const reasonMatch = content.match(/理由：\s*([\s\S]*)$/);
 
   const light = lightMatch?.[1]?.trim() || "今日はありがとう。落ち着いたらまた話せると嬉しい。";
+  const standard =
+    standardMatch?.[1]?.trim() || "今日はありがとう。今週どこかで少し話せると嬉しい。";
   const lead = leadMatch?.[1]?.trim() || "今週どこかで少し話せる？タイミング合わせたい。";
   const reason = reasonMatch?.[1]?.trim() || "相手の温度を下げず、前進しやすい短文です。";
 
-  return { light, lead, reason };
+  return { light, standard, lead, reason };
 }
 
 function parseGenericOutput(content: string) {
-  const statusMatch = content.match(/■結論\s*([\s\S]*?)(?:\n■理由|$)/);
-  const reasonMatch = content.match(/■理由\s*([\s\S]*?)(?:\n■NG行動|$)/);
+  const trendMatch = content.match(/■占術から見た傾向\s*([\s\S]*?)(?:\n■関係フェーズ|$)/);
+  const phaseMatch = content.match(/■関係フェーズ\s*([\s\S]*?)(?:\n■NG行動|$)/);
   const ngMatch = content.match(/■NG行動\s*([\s\S]*?)(?:\n■次の一手|$)/);
-  const actionMatch = content.match(/■次の一手\s*([\s\S]*?)(?:\n■LINE|$)/);
-  const lineMatch = content.match(/■LINE\s*([\s\S]*)$/);
+  const actionMatch = content.match(/■次の一手\s*([\s\S]*?)(?:\n■今送るならこのLINE|$)/);
+  const lineMatch = content.match(/■今送るならこのLINE\s*([\s\S]*)$/);
 
   return {
-    status: statusMatch?.[1]?.trim() || "慎重フェーズ。温度差の調整が必要です。",
+    status: phaseMatch?.[1]?.trim() || "様子見フェーズ",
     action: actionMatch?.[1]?.trim() || "次の1通は要点1つに絞って送る。",
     ng: ngMatch?.[1]?.trim() || "感情の連投、返信催促、結論の強要。",
     note:
-      reasonMatch?.[1]?.trim() ||
+      trendMatch?.[1]?.trim() ||
       lineMatch?.[1]?.trim() ||
       "短文で相手の返しやすさを優先してください。",
   };
@@ -68,6 +73,7 @@ export async function POST(req: Request) {
           },
           line: {
             light: "今日はありがとう。落ち着いたらまた話せると嬉しい。",
+            standard: "今日はありがとう。今週どこかで少し話せると嬉しい。",
             lead: "今週どこかで少し話せる？タイミング合わせたい。",
             reason: "相手が返しやすい温度で、次の接点を作る文面です。",
           },
