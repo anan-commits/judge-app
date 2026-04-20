@@ -1,9 +1,16 @@
 import { Solar } from "lunar-typescript";
 import type { BirthInput, NineStarKiResult } from "./types";
+import { normalizeBirthDate } from "./normalizeBirthDate";
 
 function parseDate(input: BirthInput) {
-  const [y, m, d] = input.birthDate.split("-").map((v) => Number(v));
+  const normalizedBirthDate = normalizeBirthDate(input.birthDate);
+  const [y, m, d] = normalizedBirthDate.split("-").map((v) => Number(v));
   const [hh = 12, mm = 0] = (input.birthTime || "12:00").split(":").map((v) => Number(v));
+
+  if (!y || !m || !d || Number.isNaN(y) || Number.isNaN(m) || Number.isNaN(d)) {
+    throw new Error(`Failed to parse birthDate: ${input.birthDate}`);
+  }
+
   return { y, m, d, hh, mm };
 }
 

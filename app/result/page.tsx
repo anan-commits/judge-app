@@ -10,6 +10,7 @@ import {
 } from "../lib/compatibility";
 import type { FortuneResult } from "../../lib/fortune/types";
 import { getFortuneProfile } from "../../lib/fortune/getFortuneProfile";
+import { normalizeBirthDate } from "../../lib/fortune/normalizeBirthDate";
 
 type RelationshipConversionPattern = {
   essence: string;
@@ -79,12 +80,13 @@ const selfProfile: PersonProfile = {
 
 
 function buildDisplayProfile(birthdate: string, birthtime: string) {
+  const normalizedBirthDate = normalizeBirthDate(birthdate);
   const fortune = getFortuneProfile({
-    birthDate: birthdate,
+    birthDate: normalizedBirthDate,
     birthTime: birthtime,
   });
   return {
-    birthdate,
+    birthdate: normalizedBirthDate,
     birthtime,
     dayStem: fortune.dayStem,
     fiveElement: fortune.gogyo,
@@ -423,10 +425,14 @@ function ResultPageContent() {
   const partnerDisplay = activePartner
     ? buildDisplayProfile(activePartner.birthdate, activePartner.birthtime)
     : null;
-  console.log("myProfile", myProfile);
-  console.log("myDisplayProfile", myDisplayProfile);
-  console.log("partnerProfile", partnerProfile);
-  console.log("partnerDisplayProfile", partnerDisplayProfile);
+  const normalizedSelfBirthDate = normalizeBirthDate(selfBirthdate);
+  const normalizedPartnerBirthDate = normalizeBirthDate(activePartner?.birthdate ?? "1995-03-21");
+  console.log("birthDate raw", selfBirthdate);
+  console.log("birthDate normalized", normalizedSelfBirthDate);
+  console.log("profile", myProfile);
+  console.log("birthDate raw", activePartner?.birthdate ?? "1995-03-21");
+  console.log("birthDate normalized", normalizedPartnerBirthDate);
+  console.log("profile", partnerProfile);
   const recommendedAction = result?.actions[0] ?? "週1回15分の方針共有を設定する";
   const dangerAlert = result?.cautions[0] ?? "連絡間隔のズレで誤解が起きやすい状態です";
   const selfFortune = diagnosisData?.fortuneResult.self;

@@ -4,6 +4,7 @@ import type { FormEvent } from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { getFortuneProfile } from "../../lib/fortune/getFortuneProfile";
+import { normalizeBirthDate } from "../../lib/fortune/normalizeBirthDate";
 
 export default function DiagnosisPage() {
   const router = useRouter();
@@ -25,6 +26,8 @@ export default function DiagnosisPage() {
   const myBirthTime = user.birthTime;
   const partnerBirthDate = partner.birthDate;
   const partnerBirthTime = partner.birthTime;
+  const normalizedMyBirthDate = normalizeBirthDate(myBirthDate);
+  const normalizedPartnerBirthDate = normalizeBirthDate(partnerBirthDate);
 
   const myProfile = getFortuneProfile({
     birthDate: user.birthDate,
@@ -35,10 +38,12 @@ export default function DiagnosisPage() {
     birthTime: partner.birthTime,
   });
 
-  console.log("my input", myBirthDate, myBirthTime);
-  console.log("myProfile", myProfile);
-  console.log("partner input", partnerBirthDate, partnerBirthTime);
-  console.log("partnerProfile", partnerProfile);
+  console.log("birthDate raw", myBirthDate);
+  console.log("birthDate normalized", normalizedMyBirthDate);
+  console.log("profile", myProfile);
+  console.log("birthDate raw", partnerBirthDate);
+  console.log("birthDate normalized", normalizedPartnerBirthDate);
+  console.log("profile", partnerProfile);
   const tendencyComment = `日柱天干「${myProfile.dayStem}」と五行「${myProfile.gogyo}」の傾向から、${myProfile.koseigaku}として関係を作るタイプです。`;
 
   const scrollToPartnerInput = () => {

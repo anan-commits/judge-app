@@ -1,3 +1,5 @@
+import { normalizeBirthDate } from "./normalizeBirthDate";
+
 export type YinYangGogyoResult = {
   destinyNumber: number;
   stem: string;
@@ -74,7 +76,16 @@ function buildMonthlyTable(startYear: number, endYear: number): Record<string, n
 const TABLE: Record<string, number> = buildMonthlyTable(TABLE_RANGE_START, TABLE_RANGE_END);
 
 export function calculateYinYangGogyo(birthDate: string): YinYangGogyoResult {
-  const [year, month, day] = birthDate.split("-").map(Number);
+  const normalizedBirthDate = normalizeBirthDate(birthDate);
+  const [year, month, day] = normalizedBirthDate.split("-").map(Number);
+
+  if (!year || !month || !day || Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) {
+    throw new Error(`Failed to parse birthDate: ${birthDate}`);
+  }
+
+  console.log("normalized birthDate", normalizedBirthDate);
+  console.log("parsed", { year, month, day });
+
   const key = `${year}-${String(month).padStart(2, "0")}`;
   const base = TABLE[key];
 
@@ -86,7 +97,7 @@ export function calculateYinYangGogyo(birthDate: string): YinYangGogyoResult {
   const destinyNumber = total % 10;
   const mapped = STEM_MAP[destinyNumber];
 
-  if (birthDate === "1971-01-29") {
+  if (normalizedBirthDate === "1971-01-29") {
     console.log({
       birthDate: "1971-01-29",
       key,

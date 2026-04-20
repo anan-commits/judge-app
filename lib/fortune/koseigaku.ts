@@ -1,10 +1,12 @@
 import type { BirthInput, KoseigakuResult } from "./types";
+import { normalizeBirthDate } from "./normalizeBirthDate";
 
 const categories = ["人志向", "城志向", "大物志向"] as const;
 const subtypes = ["調和型", "先導型", "分析型", "実行型", "慎重型", "創造型"] as const;
 
 export function calcKoseigaku(input: BirthInput): KoseigakuResult {
-  const digits = input.birthDate.replaceAll("-", "").split("").map((v) => Number(v) || 0);
+  const normalizedBirthDate = normalizeBirthDate(input.birthDate);
+  const digits = normalizedBirthDate.replaceAll("-", "").split("").map((v) => Number(v) || 0);
   const seed = digits.reduce((acc, n) => acc + n, 0);
 
   return {
