@@ -10,7 +10,7 @@ type ChatRequestBody = {
 };
 
 function parseLineOutput(content: string) {
-  const sectionMatch = content.match(/■今送るならこのLINE\s*([\s\S]*?)(?:\n理由：|$)/);
+  const sectionMatch = content.match(/■(?:LINE（補助）|今送るならこのLINE)\s*([\s\S]*?)$/);
   const lineBlock = sectionMatch?.[1] ?? content;
   const lightMatch = lineBlock.match(/軽め：\s*「?([\s\S]*?)」?(?:\n|$)/);
   const standardMatch = lineBlock.match(/標準：\s*「?([\s\S]*?)」?(?:\n|$)/);
@@ -27,20 +27,27 @@ function parseLineOutput(content: string) {
 }
 
 function parseGenericOutput(content: string) {
-  const trendMatch = content.match(/■占術から見た傾向\s*([\s\S]*?)(?:\n■関係フェーズ|$)/);
-  const phaseMatch = content.match(/■関係フェーズ\s*([\s\S]*?)(?:\n■NG行動|$)/);
-  const ngMatch = content.match(/■NG行動\s*([\s\S]*?)(?:\n■次の一手|$)/);
-  const actionMatch = content.match(/■次の一手\s*([\s\S]*?)(?:\n■今送るならこのLINE|$)/);
-  const lineMatch = content.match(/■今送るならこのLINE\s*([\s\S]*)$/);
+  const overviewMatch = content.match(/■状況整理\s*([\s\S]*?)(?:\n■関係フェーズ|$)/);
+  const phaseMatch = content.match(/■関係フェーズ\s*([\s\S]*?)(?:\n■(?:NG行動|今の最適行動)|$)/);
+  const actionMatch = content.match(/■今の最適行動\s*([\s\S]*?)(?:\n■理由|$)/);
+  const reasonMatch = content.match(/■理由\s*([\s\S]*?)(?:\n■分岐|$)/);
+  const branchMatch = content.match(/■分岐\s*([\s\S]*?)(?:\n■(?:LINE（補助）|今送るならこのLINE)|$)/);
+  const lineMatch = content.match(/■(?:LINE（補助）|今送るならこのLINE)\s*([\s\S]*)$/);
+  const ngMatch = content.match(/■NG行動\s*([\s\S]*?)(?:\n■今の最適行動|$)/);
 
   return {
     status: phaseMatch?.[1]?.trim() || "様子見フェーズ",
     action: actionMatch?.[1]?.trim() || "次の1通は要点1つに絞って送る。",
     ng: ngMatch?.[1]?.trim() || "感情の連投、返信催促、結論の強要。",
     note:
-      trendMatch?.[1]?.trim() ||
+      overviewMatch?.[1]?.trim() ||
+      reasonMatch?.[1]?.trim() ||
+      branchMatch?.[1]?.trim() ||
       lineMatch?.[1]?.trim() ||
       "短文で相手の返しやすさを優先してください。",
+    overview: overviewMatch?.[1]?.trim() || "",
+    reason: reasonMatch?.[1]?.trim() || "",
+    branch: branchMatch?.[1]?.trim() || "",
   };
 }
 

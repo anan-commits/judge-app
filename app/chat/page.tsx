@@ -298,6 +298,10 @@ function buildStrategyAnalysis(mode: StrategyMode, text: string): StrategyAnalys
         text: `今日はありがとう😊 ${base}また話せるタイミングで連絡もらえたら嬉しい。`,
       },
       {
+        type: "標準",
+        text: `今日はありがとう。${base}無理のない範囲で、近いうちに少し話せると嬉しいです。`,
+      },
+      {
         type: "少し主導",
         text: `今週どこかで10分だけ話せる？ ${base}タイミング合わせて前に進めたい。`,
       },
@@ -305,11 +309,11 @@ function buildStrategyAnalysis(mode: StrategyMode, text: string): StrategyAnalys
     const lineDraft = patterns[0].text;
     return {
       kind: "line",
-      title: "LINE生成",
+      title: "意思決定提案",
       ...meta,
-      line1: `相手の温度を下げずに返答しやすい余白を作る局面です。`,
-      line2: "",
-      line3: "",
+      line1: `現在の関係は温度差が出やすく、相手は慎重に様子を見ている局面です。`,
+      line2: "今の最適行動: 送るなら短文1通。迷うなら半日待ってから軽めで送る。",
+      line3: "分岐: このまま押すと防衛反応が上がりやすく、余白を作ると関係維持が安定しやすいです。",
       paidLine: lineDraft,
       lineDraft,
       linePatterns: patterns,
@@ -355,7 +359,15 @@ async function buildStrategyAnalysisViaApi(
     if (!res.ok) return null;
     const data = (await res.json()) as {
       usedHistory?: boolean;
-      generic?: { status?: string; action?: string; ng?: string; note?: string };
+      generic?: {
+        status?: string;
+        action?: string;
+        ng?: string;
+        note?: string;
+        overview?: string;
+        reason?: string;
+        branch?: string;
+      };
       line?: { light?: string; standard?: string; lead?: string; reason?: string };
     };
 
@@ -365,11 +377,11 @@ async function buildStrategyAnalysisViaApi(
       const lead = data.line?.lead || "今週どこかで少し話せる？タイミング合わせたい。";
       return {
         kind: "line",
-        title: "LINE生成",
+        title: "意思決定提案",
         ...meta,
-        line1: "ログを踏まえた現状整理を反映しています。",
-        line2: "",
-        line3: "",
+        line1: data.generic?.overview || "ログを踏まえた状況整理を反映しています。",
+        line2: data.generic?.action || "今は短文で余白を残す判断が最適です。",
+        line3: data.generic?.branch || "このまま押すと温度差が拡大しやすく、引くと関係維持が安定します。",
         paidLine: light,
         lineDraft: light,
         linePatterns: [
@@ -377,8 +389,13 @@ async function buildStrategyAnalysisViaApi(
           { type: "標準", text: standard },
           { type: "少し主導", text: lead },
         ],
-        ngList: ["感情のぶつけ連投", "返事を急かす圧のある文", "過去の不満を一度に書く"],
-        point: data.line?.reason || "相手の温度を下げず、前進しやすい文面です。",
+        ngList:
+          data.generic?.ng
+            ?.split("\n")
+            .map((s) => s.replace(/^・/, "").trim())
+            .filter(Boolean)
+            .slice(0, 3) ?? ["感情のぶつけ連投", "返事を急かす圧のある文", "過去の不満を一度に書く"],
+        point: data.generic?.reason || data.line?.reason || "占術とログから見た判断理由です。",
         usedHistory: Boolean(data.usedHistory),
       };
     }
@@ -451,8 +468,23 @@ function StrategyAnalysisCard({
         </div>
         <div className="mt-2 space-y-3">
           <div>
-            <p className="text-xs font-semibold text-zinc-600">■状況</p>
+            <p className="text-xs font-semibold text-zinc-600">■状況整理</p>
             <p className="mt-1">{analysis.line1}</p>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-zinc-600">■今の最適行動</p>
+            {locked ? (
+              <div className="relative mt-1 rounded-lg bg-white/80 p-2">
+                <p aria-hidden className="blur-[3px]">{analysis.line2}</p>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <button className="rounded-full bg-black px-4 py-2 text-xs font-semibold text-white">
+                    判断を解放する（有料）
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="mt-1">{analysis.line2}</p>
+            )}
           </div>
           <div>
             <p className="text-xs font-semibold text-zinc-600">■やってはいけないこと</p>
@@ -463,7 +495,11 @@ function StrategyAnalysisCard({
             </ul>
           </div>
           <div>
-            <p className="text-xs font-semibold text-zinc-600">■今送るべきLINE</p>
+            <p className="text-xs font-semibold text-zinc-600">■分岐</p>
+            <p className="mt-1">{analysis.line3}</p>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-zinc-600">■LINE（補助）</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {patterns.map((pattern, idx) => (
                 <button
@@ -516,9 +552,9 @@ function StrategyAnalysisCard({
             コピー
           </button>
           <div className="text-center">
-            <p className="mb-2 text-sm text-gray-600">このLINEで関係が決まります</p>
+            <p className="mb-2 text-sm text-gray-600">この判断で関係の流れが決まります</p>
             <button className="rounded-full bg-red-500 px-6 py-3 text-lg font-bold text-white shadow">
-              今すぐ解放する
+              意思決定を今すぐ解放する
             </button>
           </div>
         </div>
