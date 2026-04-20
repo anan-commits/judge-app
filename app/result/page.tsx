@@ -11,6 +11,8 @@ import {
 import type { FortuneResult } from "../../lib/fortune/types";
 import { getFortuneProfile } from "../../lib/fortune/getFortuneProfile";
 import { normalizeBirthDate } from "../../lib/fortune/normalizeBirthDate";
+import { loadMe, loadPeople } from "../../lib/people/storage";
+import type { Relationship } from "../../lib/people/types";
 
 const LATEST_INPUT_KEY = "judge_latest_input";
 
@@ -19,6 +21,15 @@ type LatestInput = {
   myBirthTime?: string;
   partnerBirthDate: string;
   partnerBirthTime?: string;
+  personId?: string;
+  relationshipType?: Relationship["type"];
+};
+
+const relationshipLabelMap: Record<Relationship["type"], string> = {
+  love: "恋愛",
+  work: "仕事",
+  friend: "友人",
+  family: "家族",
 };
 
 type RelationshipConversionPattern = {
@@ -239,18 +250,19 @@ function ThreeLayerScoreSection() {
   );
 }
 
-function ResultPersonHeader({ label, initial }: { label: string; initial: string }) {
+function ResultPersonHeader({ name, subtitle }: { name: string; subtitle: string }) {
   return (
     <div className="flex min-w-0 flex-1 flex-col items-center gap-2.5 rounded-2xl border border-zinc-200/90 bg-white px-2 py-4 shadow-sm sm:gap-3 sm:px-3 sm:py-5">
       <div
         className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-base font-semibold text-zinc-700 ring-1 ring-zinc-200/80 sm:h-14 sm:w-14 sm:text-lg"
         aria-hidden
       >
-        {initial}
+        👤
       </div>
-      <p className="max-w-full truncate text-center text-sm font-semibold leading-tight text-zinc-900 sm:text-base">
-        {label}
-      </p>
+      <div className="max-w-full text-center">
+        <p className="truncate text-lg font-bold leading-tight text-zinc-900">{name}</p>
+        <p className="mt-0.5 truncate text-xs font-medium text-zinc-600 sm:text-sm">{subtitle}</p>
+      </div>
     </div>
   );
 }
@@ -343,6 +355,8 @@ function ResultPageContent() {
   const [checkedSession, setCheckedSession] = useState(false);
   const [latestInput, setLatestInput] = useState<LatestInput | null>(null);
   const [diagnosisData, setDiagnosisData] = useState<DiagnosisPayload | null>(null);
+  const [meName, setMeName] = useState("あなた");
+  const [partnerName, setPartnerName] = useState("お相手");
 
   useEffect(() => {
     // const latestInputRaw = localStorage.getItem(LATEST_INPUT_KEY);
@@ -361,6 +375,17 @@ function ResultPageContent() {
         return;
       }
       setLatestInput(parsed);
+      const me = loadMe();
+      const people = loadPeople();
+      const selectedPerson = parsed.personId
+        ? people.find((person) => person.id === parsed.personId)
+        : undefined;
+      if (me?.name?.trim()) {
+        setMeName(me.name.trim());
+      }
+      if (selectedPerson?.name?.trim()) {
+        setPartnerName(selectedPerson.name.trim());
+      }
     } catch {
       router.replace("/diagnosis");
       return;
@@ -437,6 +462,9 @@ function ResultPageContent() {
   const partnerDisplay = buildDisplayProfile(partnerBirthDate, partnerBirthTime);
   const normalizedSelfBirthDate = normalizeBirthDate(myBirthDate);
   const normalizedPartnerBirthDate = normalizeBirthDate(partnerBirthDate);
+  const relationshipLabel = relationshipLabelMap[(latestInput.relationshipType || "love") as Relationship["type"]];
+  const selfCardTitle = `${meName}（あなた）`;
+  const partnerCardTitle = `${partnerName}（${relationshipLabel}）`;
   console.log("RIGHT PAGE latestInput", latestInput);
   console.log("RIGHT PAGE myBirthDate", myBirthDate);
   console.log("RIGHT PAGE partnerBirthDate", partnerBirthDate);
@@ -639,8 +667,8 @@ function ResultPageContent() {
               role="group"
               aria-label="診断対象"
             >
-          <ResultPersonHeader label="あなた" initial="あ" />
-          <ResultPersonHeader label="お相手" initial="相" />
+          <ResultPersonHeader name={selfCardTitle} subtitle="診断対象: あなた" />
+          <ResultPersonHeader name={partnerCardTitle} subtitle="診断対象: お相手" />
             </div>
 
             <div className="mt-6 flex flex-col gap-6 md:hidden">

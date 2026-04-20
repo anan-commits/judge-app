@@ -9,6 +9,12 @@ import type { Person, Relationship } from "../../lib/people/types";
 import { loadMe, loadPeople, saveMe, savePeople } from "../../lib/people/storage";
 
 const LATEST_INPUT_KEY = "judge_latest_input";
+const relationshipLabelMap: Record<Relationship["type"], string> = {
+  love: "恋愛",
+  work: "仕事",
+  friend: "友人",
+  family: "家族",
+};
 
 export default function DiagnosisPage() {
   const router = useRouter();
@@ -67,6 +73,10 @@ export default function DiagnosisPage() {
   const tendencyComment = myProfile
     ? `干支「${myProfile.kanshi}」と陰陽五行「${myProfile.yinYangGogyo}」の傾向から、${myProfile.koseigaku}として関係を作るタイプです。`
     : "";
+  const selfCardTitle = `${selfName || "あなた"}（あなた）`;
+  const partnerCardTitle = `${selectedPerson?.name || "お相手"}（${
+    relationshipLabelMap[relationshipType]
+  }）`;
 
   const addPerson = () => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -297,7 +307,7 @@ export default function DiagnosisPage() {
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div className="rounded-xl border border-zinc-200 bg-white p-4">
-                <h4 className="text-base font-bold text-zinc-900">あなた</h4>
+                <h4 className="text-base font-bold text-zinc-900">{selfCardTitle}</h4>
                 <div className="mt-3 space-y-1 text-sm text-gray-700">
                   {myProfile ? (
                     <>
@@ -309,7 +319,7 @@ export default function DiagnosisPage() {
                 </div>
               </div>
               <div className="rounded-xl border border-zinc-200 bg-white p-4">
-                <h4 className="text-base font-bold text-zinc-900">お相手</h4>
+                <h4 className="text-base font-bold text-zinc-900">{partnerCardTitle}</h4>
                 <div className="mt-3 space-y-1 text-sm text-gray-700">
                   {partnerProfile ? (
                     <>
