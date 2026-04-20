@@ -22,16 +22,20 @@ function parseLineOutput(content: string) {
 }
 
 function parseGenericOutput(content: string) {
-  const statusMatch = content.match(/現在の関係ステータス:\s*([\s\S]*?)(?:\n次に取るべき行動:|$)/);
-  const actionMatch = content.match(/次に取るべき行動:\s*([\s\S]*?)(?:\nNG行動:|$)/);
-  const ngMatch = content.match(/NG行動:\s*([\s\S]*?)(?:\n補足:|$)/);
-  const noteMatch = content.match(/補足:\s*([\s\S]*)$/);
+  const statusMatch = content.match(/■結論\s*([\s\S]*?)(?:\n■理由|$)/);
+  const reasonMatch = content.match(/■理由\s*([\s\S]*?)(?:\n■NG行動|$)/);
+  const ngMatch = content.match(/■NG行動\s*([\s\S]*?)(?:\n■次の一手|$)/);
+  const actionMatch = content.match(/■次の一手\s*([\s\S]*?)(?:\n■LINE|$)/);
+  const lineMatch = content.match(/■LINE\s*([\s\S]*)$/);
 
   return {
     status: statusMatch?.[1]?.trim() || "慎重フェーズ。温度差の調整が必要です。",
     action: actionMatch?.[1]?.trim() || "次の1通は要点1つに絞って送る。",
     ng: ngMatch?.[1]?.trim() || "感情の連投、返信催促、結論の強要。",
-    note: noteMatch?.[1]?.trim() || "短文で相手の返しやすさを優先してください。",
+    note:
+      reasonMatch?.[1]?.trim() ||
+      lineMatch?.[1]?.trim() ||
+      "短文で相手の返しやすさを優先してください。",
   };
 }
 
