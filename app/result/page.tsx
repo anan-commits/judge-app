@@ -9,6 +9,7 @@ import {
   type CompatibilityResult,
   type PersonProfile,
 } from "../lib/compatibility";
+import type { FortuneResult } from "../../lib/fortune/types";
 
 type RelationshipConversionPattern = {
   essence: string;
@@ -273,6 +274,15 @@ function ResultPersonHeader({ label, initial }: { label: string; initial: string
 
 type DisplayProfile = ReturnType<typeof buildDisplayProfile>;
 
+type DiagnosisPayload = {
+  relationshipPhase: "接近フェーズ" | "様子見フェーズ" | "距離注意フェーズ";
+  phaseReason: string;
+  fortuneResult: {
+    self: FortuneResult;
+    partner: FortuneResult;
+  };
+};
+
 function compatibilityBridgeCopy(result: CompatibilityResult | null): string {
   const score = result?.totalScore ?? 0;
   const fe = result?.breakdown.fiveElement ?? 0;
@@ -352,10 +362,12 @@ function ResultPageContent() {
   const [activePartnerIndex] = useState(0);
   const [partnerProfiles, setPartnerProfiles] = useState<PersonProfile[]>([]);
   const [resultsByPartner, setResultsByPartner] = useState<CompatibilityResult[]>([]);
+  const [diagnosisData, setDiagnosisData] = useState<DiagnosisPayload | null>(null);
 
   useEffect(() => {
     const birthdate = sessionStorage.getItem("judge-code:partner-birthdate");
     const birthtime = sessionStorage.getItem("judge-code:partner-birthtime");
+    const diagnosisRaw = sessionStorage.getItem("judge-code:latest-diagnosis");
 
     if (!birthdate || !birthtime) {
       router.replace("/diagnosis");
@@ -366,6 +378,16 @@ function ResultPageContent() {
     const partnerList = [partner];
     setPartnerProfiles(partnerList);
     setResultsByPartner(partnerList.map((item) => calculateCompatibility(selfProfile, item)));
+    if (diagnosisRaw) {
+      try {
+        const parsed = JSON.parse(diagnosisRaw) as DiagnosisPayload;
+        setDiagnosisData(parsed);
+      } catch {
+        setDiagnosisData(null);
+      }
+    } else {
+      setDiagnosisData(null);
+    }
     setCheckedSession(true);
   }, [router]);
 
@@ -407,6 +429,13 @@ function ResultPageContent() {
   const partnerDisplay = activePartner ? buildDisplayProfile(activePartner) : null;
   const recommendedAction = result?.actions[0] ?? "週1回15分の方針共有を設定する";
   const dangerAlert = result?.cautions[0] ?? "連絡間隔のズレで誤解が起きやすい状態です";
+  const selfFortune = diagnosisData?.fortuneResult.self;
+  const partnerFortune = diagnosisData?.fortuneResult.partner;
+  const warnings = [
+    ...(selfFortune?.calculationMeta.warnings ?? []),
+    ...(partnerFortune?.calculationMeta.warnings ?? []),
+    partnerFortune?.nineStarKi?.note ?? "",
+  ].filter(Boolean);
   const currentPhase =
     (result?.totalScore ?? 0) >= 80
       ? "前進フェーズ"
@@ -461,6 +490,62 @@ function ResultPageContent() {
       </section>
 
       <section className="mx-auto max-w-6xl px-6 py-10 md:px-10 md:py-14">
+        {diagnosisData ? (
+          <div className="mb-4 rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
+            <p className="text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">統合占術エンジン結果</p>
+            <div className="mt-3 rounded-xl bg-black p-4 text-white">
+              <p className="text-xs opacity-70">関係フェーズ</p>
+              <p className="mt-1 text-lg font-bold">{diagnosisData.relationshipPhase}</p>
+              <p className="mt-1 text-xs text-white/80">{diagnosisData.phaseReason}</p>
+            </div>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
+                <p className="font-semibold text-zinc-900">四柱推命（あなた）</p>
+                <p className="mt-1">年柱: {selfFortune?.pillars?.yearPillar ?? "-"}</p>
+                <p>月柱: {selfFortune?.pillars?.monthPillar ?? "-"}</p>
+                <p>日柱: {selfFortune?.pillars?.dayPillar ?? "-"}</p>
+                <p>時柱: {selfFortune?.pillars?.hourPillar ?? "未算出"}</p>
+              </div>
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
+                <p className="font-semibold text-zinc-900">四柱推命（お相手）</p>
+                <p className="mt-1">年柱: {partnerFortune?.pillars?.yearPillar ?? "-"}</p>
+                <p>月柱: {partnerFortune?.pillars?.monthPillar ?? "-"}</p>
+                <p>日柱: {partnerFortune?.pillars?.dayPillar ?? "-"}</p>
+                <p>時柱: {partnerFortune?.pillars?.hourPillar ?? "未算出"}</p>
+              </div>
+            </div>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
+                <p className="font-semibold text-zinc-900">五行バランス（お相手）</p>
+                <p className="mt-1">
+                  木{partnerFortune?.wuxing?.wood ?? 0} 火{partnerFortune?.wuxing?.fire ?? 0} 土
+                  {partnerFortune?.wuxing?.earth ?? 0} 金{partnerFortune?.wuxing?.metal ?? 0} 水
+                  {partnerFortune?.wuxing?.water ?? 0}
+                </p>
+                <p>主軸: {partnerFortune?.wuxing?.dominant ?? "-"}</p>
+              </div>
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
+                <p className="font-semibold text-zinc-900">九星気学（お相手）</p>
+                <p className="mt-1">本命星: {partnerFortune?.nineStarKi?.honmei ?? "-"}</p>
+                <p>月命星: {partnerFortune?.nineStarKi?.getsumei ?? "-"}</p>
+              </div>
+            </div>
+            <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
+              <p className="font-semibold text-zinc-900">計算精度</p>
+              <p className="mt-1">
+                あなた: {selfFortune?.calculationMeta.precisionLevel ?? "basic"} / お相手:{" "}
+                {partnerFortune?.calculationMeta.precisionLevel ?? "basic"}
+              </p>
+              {warnings.length ? (
+                <ul className="mt-2 space-y-1 text-xs text-zinc-500">
+                  {warnings.map((warning, idx) => (
+                    <li key={`${warning}-${idx}`}>・{warning}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
         <div className="mb-4 rounded-xl bg-black p-5 text-white">
           <p className="text-sm opacity-70">現在の関係性</p>
           <p className="mt-1 text-xl font-bold">今は「{currentPhase}」です</p>

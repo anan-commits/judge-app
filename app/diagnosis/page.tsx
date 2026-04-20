@@ -62,12 +62,42 @@ export default function DiagnosisPage() {
     setDidCompleteStep1(true);
   };
 
-  const handleFinalSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleFinalSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!partnerBirthdate) return;
 
+    const selfBirthDate = selfBirthdate || "1992-11-08";
+    const selfBirthTime = selfBirthtime || undefined;
+    const partnerBirthTime = partnerBirthtime || undefined;
+
+    try {
+      const res = await fetch("/api/diagnosis", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          self: {
+            birthDate: selfBirthDate,
+            birthTime: selfBirthTime,
+          },
+          partner: {
+            birthDate: partnerBirthdate,
+            birthTime: partnerBirthTime,
+          },
+        }),
+      });
+
+      if (!res.ok) throw new Error("diagnosis api failed");
+      const diagnosis = await res.json();
+      sessionStorage.setItem("judge-code:latest-diagnosis", JSON.stringify(diagnosis));
+    } catch {
+      // API失敗時も既存導線を止めない
+      sessionStorage.removeItem("judge-code:latest-diagnosis");
+    }
+
+    // 既存互換: /result で参照するキーは維持
+    sessionStorage.setItem("judge-code:self-birthdate", selfBirthDate);
+    sessionStorage.setItem("judge-code:self-birthtime", selfBirthtime || "");
     sessionStorage.setItem("judge-code:partner-birthdate", partnerBirthdate);
-    // 互換性維持: 未入力時は既存ロジックが壊れないようデフォルトを保存
     sessionStorage.setItem("judge-code:partner-birthtime", partnerBirthtime || "12:00");
     router.push("/result");
   };
