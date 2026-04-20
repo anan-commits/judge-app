@@ -5,11 +5,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   buildPartnerProfile,
   calculateCompatibility,
-  type FiveElement,
   type CompatibilityResult,
   type PersonProfile,
 } from "../lib/compatibility";
 import type { FortuneResult } from "../../lib/fortune/types";
+import { getFortuneProfile } from "../../lib/fortune/getFortuneProfile";
 
 type RelationshipConversionPattern = {
   essence: string;
@@ -72,53 +72,25 @@ const selfProfile: PersonProfile = {
   personalityType: 7,
 };
 
-const dayStems = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"] as const;
-const luckyDirections = ["北", "北東", "東", "南東", "南", "南西", "西", "北西"] as const;
 /**
  * 課金導線用コピー（MVPダミー）。essence→tendency→neglectRisk が一文脈でつながるストーリー。
  * 後から診断スコア・タイプと接続。
  */
 
 
-const nineStarLabels = [
-  "",
-  "一白水星",
-  "二黒土星",
-  "三碧木星",
-  "四緑木星",
-  "五黄土星",
-  "六白金星",
-  "七赤金星",
-  "八白土星",
-  "九紫火星",
-] as const;
-
-function toElementLabel(value: FiveElement): string {
-  const map: Record<FiveElement, string> = {
-    wood: "木",
-    fire: "火",
-    earth: "土",
-    metal: "金",
-    water: "水",
-  };
-  return map[value];
-}
-
-function toPersonalityLabel(value: number): string {
-  const labels = ["先導型", "分析型", "調整型", "実行型", "創造型", "慎重型", "調和型", "挑戦型", "安定型", "支援型", "戦略型", "柔軟型"];
-  return labels[(value - 1) % labels.length] ?? "調和型";
-}
-
 function buildDisplayProfile(base: PersonProfile) {
-  const seed = Number(base.birthdate.replaceAll("-", "").slice(-2)) || 1;
+  const fortune = getFortuneProfile({
+    birthDate: base.birthdate,
+    birthTime: base.birthtime,
+  });
   return {
     birthdate: base.birthdate,
     birthtime: base.birthtime,
-    dayStem: dayStems[seed % dayStems.length],
-    fiveElement: toElementLabel(base.fiveElement),
-    nineStar: nineStarLabels[base.nineStar] ?? `${base.nineStar}星`,
-    personality: toPersonalityLabel(base.personalityType),
-    luckyDirection: luckyDirections[seed % luckyDirections.length],
+    dayStem: fortune.dayStem,
+    fiveElement: fortune.gogyo,
+    nineStar: fortune.kyusei,
+    personality: fortune.koseigaku,
+    luckyDirection: "-",
   };
 }
 
@@ -427,6 +399,14 @@ function ResultPageContent() {
   const activePartner = partnerProfiles[activePartnerIndex] ?? null;
   const result = resultsByPartner[activePartnerIndex] ?? null;
   const partnerDisplay = activePartner ? buildDisplayProfile(activePartner) : null;
+  const unifiedSelf = getFortuneProfile({
+    birthDate: selfProfile.birthdate,
+    birthTime: selfProfile.birthtime,
+  });
+  const unifiedPartner = getFortuneProfile({
+    birthDate: activePartner?.birthdate ?? "1995-03-21",
+    birthTime: activePartner?.birthtime,
+  });
   const recommendedAction = result?.actions[0] ?? "週1回15分の方針共有を設定する";
   const dangerAlert = result?.cautions[0] ?? "連絡間隔のズレで誤解が起きやすい状態です";
   const selfFortune = diagnosisData?.fortuneResult.self;
@@ -501,33 +481,29 @@ function ResultPageContent() {
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
                 <p className="font-semibold text-zinc-900">四柱推命（あなた）</p>
-                <p className="mt-1">年柱: {selfFortune?.pillars?.yearPillar ?? "-"}</p>
-                <p>月柱: {selfFortune?.pillars?.monthPillar ?? "-"}</p>
-                <p>日柱: {selfFortune?.pillars?.dayPillar ?? "-"}</p>
-                <p>時柱: {selfFortune?.pillars?.hourPillar ?? "未算出"}</p>
+                <p className="mt-1">日柱天干: {unifiedSelf.dayStem}</p>
+                <p>五行: {unifiedSelf.gogyo}</p>
+                <p>九星気学: {unifiedSelf.kyusei}</p>
+                <p>個性学: {unifiedSelf.koseigaku}</p>
               </div>
               <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
                 <p className="font-semibold text-zinc-900">四柱推命（お相手）</p>
-                <p className="mt-1">年柱: {partnerFortune?.pillars?.yearPillar ?? "-"}</p>
-                <p>月柱: {partnerFortune?.pillars?.monthPillar ?? "-"}</p>
-                <p>日柱: {partnerFortune?.pillars?.dayPillar ?? "-"}</p>
-                <p>時柱: {partnerFortune?.pillars?.hourPillar ?? "未算出"}</p>
+                <p className="mt-1">日柱天干: {unifiedPartner.dayStem}</p>
+                <p>五行: {unifiedPartner.gogyo}</p>
+                <p>九星気学: {unifiedPartner.kyusei}</p>
+                <p>個性学: {unifiedPartner.koseigaku}</p>
               </div>
             </div>
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
                 <p className="font-semibold text-zinc-900">五行バランス（お相手）</p>
-                <p className="mt-1">
-                  木{partnerFortune?.wuxing?.wood ?? 0} 火{partnerFortune?.wuxing?.fire ?? 0} 土
-                  {partnerFortune?.wuxing?.earth ?? 0} 金{partnerFortune?.wuxing?.metal ?? 0} 水
-                  {partnerFortune?.wuxing?.water ?? 0}
-                </p>
-                <p>主軸: {partnerFortune?.wuxing?.dominant ?? "-"}</p>
+                <p className="mt-1">五行: {unifiedPartner.gogyo}</p>
+                <p>主軸: {unifiedPartner.gogyo}</p>
               </div>
               <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
                 <p className="font-semibold text-zinc-900">九星気学（お相手）</p>
-                <p className="mt-1">本命星: {partnerFortune?.nineStarKi?.honmei ?? "-"}</p>
-                <p>月命星: {partnerFortune?.nineStarKi?.getsumei ?? "-"}</p>
+                <p className="mt-1">本命星: {unifiedPartner.kyusei}</p>
+                <p>月命星: {unifiedPartner.kyusei}</p>
               </div>
             </div>
             <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">

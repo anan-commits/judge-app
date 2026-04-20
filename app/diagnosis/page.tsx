@@ -3,36 +3,7 @@
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { getSimpleFortuneProfile } from "../../lib/fortune/simpleProfile";
-
-type SelfInsight = {
-  typeName: string;
-  personality: string;
-  loveStyle: string;
-};
-
-const SELF_INSIGHTS: SelfInsight[] = [
-  {
-    typeName: "共感バランス型",
-    personality: "慎重に相手を見極める観察型",
-    loveStyle: "安心感を積み上げるほど深く続くタイプ",
-  },
-  {
-    typeName: "感受先読み型",
-    personality: "感受性が高い共感型",
-    loveStyle: "言葉より空気感で温度を読むタイプ",
-  },
-  {
-    typeName: "直感推進型",
-    personality: "行動が早い推進型",
-    loveStyle: "決めたら一気に距離を縮めるタイプ",
-  },
-  {
-    typeName: "安定調整型",
-    personality: "調整力が高いバランス型",
-    loveStyle: "衝突を避けつつ長く続けるタイプ",
-  },
-];
+import { getFortuneProfile } from "../../lib/fortune/getFortuneProfile";
 
 export default function DiagnosisPage() {
   const router = useRouter();
@@ -42,10 +13,6 @@ export default function DiagnosisPage() {
   const [partnerBirthtime, setPartnerBirthtime] = useState("");
   const [didCompleteStep1, setDidCompleteStep1] = useState(false);
   const [showPartnerStep, setShowPartnerStep] = useState(false);
-  const [selfInsight] = useState<SelfInsight>(() => {
-    const i = Math.floor(Math.random() * SELF_INSIGHTS.length);
-    return SELF_INSIGHTS[i] ?? SELF_INSIGHTS[0];
-  });
   const user = {
     birthDate: selfBirthdate || "1992-11-08",
     birthTime: selfBirthtime || undefined,
@@ -54,19 +21,25 @@ export default function DiagnosisPage() {
     birthDate: partnerBirthdate || "1995-03-21",
     birthTime: partnerBirthtime || undefined,
   };
-  const myProfile = getSimpleFortuneProfile({
+  const myBirthDate = user.birthDate;
+  const myBirthTime = user.birthTime;
+  const partnerBirthDate = partner.birthDate;
+  const partnerBirthTime = partner.birthTime;
+
+  const myProfile = getFortuneProfile({
     birthDate: user.birthDate,
     birthTime: user.birthTime,
   });
-  const partnerProfile = getSimpleFortuneProfile({
+  const partnerProfile = getFortuneProfile({
     birthDate: partner.birthDate,
     birthTime: partner.birthTime,
   });
 
-  console.log("user input", user);
-  console.log("partner input", partner);
+  console.log("my input", myBirthDate, myBirthTime);
   console.log("myProfile", myProfile);
+  console.log("partner input", partnerBirthDate, partnerBirthTime);
   console.log("partnerProfile", partnerProfile);
+  const tendencyComment = `日柱天干「${myProfile.dayStem}」と五行「${myProfile.gogyo}」の傾向から、${myProfile.koseigaku}として関係を作るタイプです。`;
 
   const scrollToPartnerInput = () => {
     setShowPartnerStep(true);
@@ -200,19 +173,15 @@ export default function DiagnosisPage() {
               STEP2
             </p>
             <h3 className="mt-1 text-lg font-semibold text-zinc-950">
-              あなたは「{selfInsight.typeName}」です
+              あなたは「{myProfile.koseigaku}」です
             </h3>
             <div className="mt-2 text-xs text-gray-500">
               {myProfile.dayStem}（{myProfile.gogyo}）｜{myProfile.kyusei}｜{myProfile.koseigaku}
             </div>
             <div className="mt-4 grid gap-3">
               <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3">
-                <p className="text-xs font-medium text-zinc-600">性格</p>
-                <p className="mt-1 text-sm font-semibold text-zinc-900">{selfInsight.personality}</p>
-              </div>
-              <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3">
-                <p className="text-xs font-medium text-zinc-600">恋愛傾向</p>
-                <p className="mt-1 text-sm font-semibold text-zinc-900">{selfInsight.loveStyle}</p>
+                <p className="text-xs font-medium text-zinc-600">あなたの傾向</p>
+                <p className="mt-1 text-sm font-semibold text-zinc-900">{tendencyComment}</p>
               </div>
             </div>
             <p className="mt-4 text-sm leading-relaxed text-zinc-700">
@@ -248,7 +217,6 @@ export default function DiagnosisPage() {
                   <div>五行: {myProfile.gogyo}</div>
                   <div>九星気学: {myProfile.kyusei}</div>
                   <div>個性学: {myProfile.koseigaku}</div>
-                  <div>吉方位: {myProfile.luckyDirection}</div>
                 </div>
               </div>
               <div className="rounded-xl border border-zinc-200 bg-white p-4">
@@ -258,7 +226,6 @@ export default function DiagnosisPage() {
                   <div>五行: {partnerProfile.gogyo}</div>
                   <div>九星気学: {partnerProfile.kyusei}</div>
                   <div>個性学: {partnerProfile.koseigaku}</div>
-                  <div>吉方位: {partnerProfile.luckyDirection}</div>
                 </div>
               </div>
             </div>
