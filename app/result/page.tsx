@@ -286,12 +286,7 @@ function ProfileStatusCard({
         <p className="hidden md:block">
           出生時間: <span className="font-semibold text-zinc-900">{d?.birthtime ?? "-"}</span>
         </p>
-        <p className="hidden md:block">
-          日柱天干: <span className="font-semibold text-zinc-900">{d?.dayStem ?? "-"}</span>
-        </p>
-        <p>
-          五行: <span className="font-semibold text-zinc-900">{d?.fiveElement ?? "-"}</span>
-        </p>
+        <p>陰陽五行: <span className="font-semibold text-zinc-900">{d?.dayStem ?? "-"}（{d?.fiveElement ?? "-"}）</span></p>
         <p>
           九星気学: <span className="font-semibold text-zinc-900">{d?.nineStar ?? "-"}</span>
         </p>
@@ -313,7 +308,7 @@ function ProfileStatusCard({
               <span className="font-medium text-zinc-800">{d?.birthtime ?? "-"}</span>
             </p>
             <p>
-              日柱天干: <span className="font-medium text-zinc-800">{d?.dayStem ?? "-"}</span>
+              陰陽五行: <span className="font-medium text-zinc-800">{d?.dayStem ?? "-"}（{d?.fiveElement ?? "-"}）</span>
             </p>
             <p>
               吉方位: <span className="font-medium text-zinc-800">{d?.luckyDirection ?? "-"}</span>
@@ -506,15 +501,13 @@ function ResultPageContent() {
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
                 <p className="font-semibold text-zinc-900">四柱推命（あなた）</p>
-                <p className="mt-1">日柱天干: {myDisplayProfile.dayStem}</p>
-                <p>五行: {myDisplayProfile.gogyo}</p>
+                <p className="mt-1">陰陽五行: {myDisplayProfile.dayStem}（{myDisplayProfile.gogyo}）</p>
                 <p>九星気学: {myDisplayProfile.kyusei}</p>
                 <p>個性学: {myDisplayProfile.koseigaku}</p>
               </div>
               <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
                 <p className="font-semibold text-zinc-900">四柱推命（お相手）</p>
-                <p className="mt-1">日柱天干: {partnerDisplayProfile.dayStem}</p>
-                <p>五行: {partnerDisplayProfile.gogyo}</p>
+                <p className="mt-1">陰陽五行: {partnerDisplayProfile.dayStem}（{partnerDisplayProfile.gogyo}）</p>
                 <p>九星気学: {partnerDisplayProfile.kyusei}</p>
                 <p>個性学: {partnerDisplayProfile.koseigaku}</p>
               </div>
