@@ -46,8 +46,27 @@ export default function DiagnosisPage() {
     const i = Math.floor(Math.random() * SELF_INSIGHTS.length);
     return SELF_INSIGHTS[i] ?? SELF_INSIGHTS[0];
   });
-  const myFortuneProfile = getSimpleFortuneProfile(selfBirthdate || "1992-11-08");
-  const partnerFortuneProfile = getSimpleFortuneProfile(partnerBirthdate || "1995-03-21");
+  const user = {
+    birthDate: selfBirthdate || "1992-11-08",
+    birthTime: selfBirthtime || undefined,
+  };
+  const partner = {
+    birthDate: partnerBirthdate || "1995-03-21",
+    birthTime: partnerBirthtime || undefined,
+  };
+  const myProfile = getSimpleFortuneProfile({
+    birthDate: user.birthDate,
+    birthTime: user.birthTime,
+  });
+  const partnerProfile = getSimpleFortuneProfile({
+    birthDate: partner.birthDate,
+    birthTime: partner.birthTime,
+  });
+
+  console.log("user input", user);
+  console.log("partner input", partner);
+  console.log("myProfile", myProfile);
+  console.log("partnerProfile", partnerProfile);
 
   const scrollToPartnerInput = () => {
     setShowPartnerStep(true);
@@ -222,17 +241,21 @@ export default function DiagnosisPage() {
               <div className="rounded-xl border border-zinc-200 bg-white p-4">
                 <h4 className="text-base font-bold text-zinc-900">あなた</h4>
                 <div className="mt-3 space-y-1 text-sm text-gray-700">
-                  <div>九星気学：{myFortuneProfile.kyusei}</div>
-                  <div>四柱推命：{myFortuneProfile.pillar}</div>
-                  <div>個性学：{myFortuneProfile.koseigaku}</div>
+                  <div>日柱天干: {myProfile.dayStem}</div>
+                  <div>五行: {myProfile.gogyo}</div>
+                  <div>九星気学: {myProfile.kyusei}</div>
+                  <div>個性学: {myProfile.koseigaku}</div>
+                  <div>吉方位: {myProfile.luckyDirection}</div>
                 </div>
               </div>
               <div className="rounded-xl border border-zinc-200 bg-white p-4">
                 <h4 className="text-base font-bold text-zinc-900">お相手</h4>
                 <div className="mt-3 space-y-1 text-sm text-gray-700">
-                  <div>九星気学：{partnerFortuneProfile.kyusei}</div>
-                  <div>四柱推命：{partnerFortuneProfile.pillar}</div>
-                  <div>個性学：{partnerFortuneProfile.koseigaku}</div>
+                  <div>日柱天干: {partnerProfile.dayStem}</div>
+                  <div>五行: {partnerProfile.gogyo}</div>
+                  <div>九星気学: {partnerProfile.kyusei}</div>
+                  <div>個性学: {partnerProfile.koseigaku}</div>
+                  <div>吉方位: {partnerProfile.luckyDirection}</div>
                 </div>
               </div>
             </div>
