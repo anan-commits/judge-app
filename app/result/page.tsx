@@ -407,6 +407,15 @@ function ResultPageContent() {
   const partnerDisplay = activePartner ? buildDisplayProfile(activePartner) : null;
   const recommendedAction = result?.actions[0] ?? "週1回15分の方針共有を設定する";
   const dangerAlert = result?.cautions[0] ?? "連絡間隔のズレで誤解が起きやすい状態です";
+  const currentPhase =
+    (result?.totalScore ?? 0) >= 80
+      ? "前進フェーズ"
+      : (result?.totalScore ?? 0) >= 60
+        ? "様子見フェーズ"
+        : "調整フェーズ";
+  const conciseReason =
+    result?.cautions[0] ?? "返信頻度と温度感から、好意はあるが慎重な状態です。";
+  const ngTop = (result?.cautions ?? []).slice(0, 2);
 
   return (
     <main className="min-h-screen bg-[#f7f7f5] text-zinc-900">
@@ -452,23 +461,34 @@ function ResultPageContent() {
       </section>
 
       <section className="mx-auto max-w-6xl px-6 py-10 md:px-10 md:py-14">
-        <ThreeLayerScoreSection />
-        <div className="mt-4 rounded-2xl border border-red-300 bg-red-50 p-4 md:mt-5">
-          <p className="font-bold text-red-700">
-            ⚠️ 今の返信次第で、この関係は一気に動く可能性があります
-          </p>
-          <p className="mt-2 text-sm text-gray-600">
-            分析で止まらず、次に送る1通を先に決めると失敗を減らせます。
-          </p>
-          <a
-            href="/chat"
-            className="mt-3 inline-flex h-11 min-h-[44px] w-full items-center justify-center rounded-full bg-zinc-900 px-5 text-sm font-semibold text-white hover:bg-zinc-800 sm:w-auto"
-          >
-            LINE生成を開く
-          </a>
+        <div className="mb-4 rounded-xl bg-black p-5 text-white">
+          <p className="text-sm opacity-70">現在の関係性</p>
+          <p className="mt-1 text-xl font-bold">今は「{currentPhase}」です</p>
+        </div>
+        <div className="mb-4">
+          <p className="text-sm text-gray-600">{conciseReason}</p>
+        </div>
+        <div className="mb-4 rounded-lg border border-red-300 bg-red-50 p-4">
+          <p className="mb-2 font-bold text-red-600">やってはいけないこと</p>
+          <ul className="text-sm">
+            {(ngTop.length ? ngTop : ["追いLINE", "長文"]).map((item) => (
+              <li key={item}>・{item}</li>
+            ))}
+          </ul>
+        </div>
+        <div className="mb-4 rounded-lg border bg-blue-50 p-4">
+          <p className="mb-2 font-bold">次の一手</p>
+          <p className="text-sm">{recommendedAction}</p>
         </div>
 
-        <div className="mt-6 rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)] sm:p-6 md:rounded-3xl md:p-7">
+        <details className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-[0_8px_30px_rgba(15,23,42,0.04)] md:p-5">
+          <summary className="cursor-pointer list-none text-sm font-semibold text-zinc-700 [&::-webkit-details-marker]:hidden">
+            もっと見る（相性詳細・性格分析・長文解説）
+          </summary>
+          <div className="mt-4 space-y-8">
+            <ThreeLayerScoreSection />
+
+            <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)] sm:p-6 md:rounded-3xl md:p-7">
           <p className="text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">相性サマリー</p>
           <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:gap-8">
             <div>
@@ -489,35 +509,35 @@ function ResultPageContent() {
             {result?.summary ?? "診断結果を読み込んでいます。"}
           </p>
           <p className="mt-2 text-[11px] text-zinc-500 md:hidden">全文は下の「総評（全文）」でもご覧いただけます。</p>
-        </div>
+            </div>
 
-        <p className="mt-6 text-center text-xs font-medium leading-relaxed text-zinc-500 md:hidden">
+            <p className="text-center text-xs font-medium leading-relaxed text-zinc-500 md:hidden">
           2人の基本プロフィール
-        </p>
+            </p>
 
-        <div
-          className="mt-3 flex flex-col gap-3 md:mt-8 md:flex-row md:gap-4"
-          role="group"
-          aria-label="診断対象"
-        >
+            <div
+              className="flex flex-col gap-3 md:mt-2 md:flex-row md:gap-4"
+              role="group"
+              aria-label="診断対象"
+            >
           <ResultPersonHeader label="あなた" initial="あ" />
           <ResultPersonHeader label="お相手" initial="相" />
-        </div>
+            </div>
 
-        <div className="mt-6 flex flex-col gap-6 md:hidden">
+            <div className="mt-6 flex flex-col gap-6 md:hidden">
           <ProfileStatusCard title="あなたの占術ステータス" display={selfDisplay} />
           <p className="text-center text-xs font-medium leading-relaxed text-zinc-500">
             {compatibilityBridgeCopy(result)}
           </p>
           <ProfileStatusCard title="お相手の占術ステータス" display={partnerDisplay} />
-        </div>
+            </div>
 
-        <div className="mt-8 hidden gap-5 md:grid md:grid-cols-2">
+            <div className="mt-8 hidden gap-5 md:grid md:grid-cols-2">
           <ProfileStatusCard title="あなたの占術ステータス" display={selfDisplay} />
           <ProfileStatusCard title="お相手の占術ステータス" display={partnerDisplay} />
-        </div>
+            </div>
 
-        <div className="mt-8 rounded-3xl border border-zinc-200/90 bg-white p-7 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
+            <div className="rounded-3xl border border-zinc-200/90 bg-white p-7 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
           <p className="text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">
             占術ごとの相性
           </p>
@@ -557,9 +577,9 @@ function ResultPageContent() {
               </div>
             ))}
           </div>
-        </div>
+            </div>
 
-        <div className="mt-8 rounded-3xl border border-zinc-200/90 bg-white p-7 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
+            <div className="rounded-3xl border border-zinc-200/90 bg-white p-7 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
           <p className="text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">
             無料で見られる診断結果
           </p>
@@ -596,9 +616,9 @@ function ResultPageContent() {
               <p className="mt-1 text-sm text-rose-800">{dangerAlert}</p>
             </div>
           </div>
-        </div>
+            </div>
 
-        <div className="mt-8 rounded-3xl border border-zinc-200/90 bg-white p-7 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
+            <div className="rounded-3xl border border-zinc-200/90 bg-white p-7 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
           <p className="text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">ロック中の詳細分析</p>
           <div className="relative mt-4 grid gap-4 md:grid-cols-2">
             {[
@@ -623,6 +643,23 @@ function ResultPageContent() {
             className="mt-5 inline-flex h-12 items-center justify-center rounded-full bg-[#06C755] px-8 text-sm font-semibold text-white transition hover:bg-[#05af4a]"
           >
             LINEで詳細を受け取る
+          </a>
+            </div>
+          </div>
+        </details>
+
+        <div className="mt-6 rounded-2xl border border-red-300 bg-red-50 p-4">
+          <p className="font-bold text-red-700">
+            ⚠️ 今の返信次第で、この関係は一気に動く可能性があります
+          </p>
+          <p className="mt-2 text-sm text-gray-600">
+            分析で止まらず、次に送る1通を先に決めると失敗を減らせます。
+          </p>
+          <a
+            href="/chat"
+            className="mt-3 inline-flex h-11 min-h-[44px] w-full items-center justify-center rounded-full bg-zinc-900 px-5 text-sm font-semibold text-white hover:bg-zinc-800 sm:w-auto"
+          >
+            LINE生成を開く
           </a>
         </div>
 
