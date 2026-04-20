@@ -12,6 +12,9 @@ const elementMap: Record<string, keyof Omit<WuxingResult, "dominant" | "lacking"
 
 function parseDate(input: BirthInput) {
   const normalizedBirthDate = normalizeBirthDate(input.birthDate);
+  if (!normalizedBirthDate) {
+    throw new Error(`Failed to parse birthDate: ${input.birthDate}`);
+  }
   const [y, m, d] = normalizedBirthDate.split("-").map((v) => Number(v));
   const [hh = 12, mm = 0] = (input.birthTime || "12:00").split(":").map((v) => Number(v));
 

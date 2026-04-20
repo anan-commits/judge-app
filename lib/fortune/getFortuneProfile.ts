@@ -23,17 +23,36 @@ const kyuseiMap = [
 const koseigakuList = ["大物思考完璧", "城思考", "人思考"] as const;
 
 export function getFortuneProfile(input: {
-  birthDate: string;
+  birthDate?: string;
   birthTime?: string;
-}): FortuneProfile {
+}): FortuneProfile | null {
   const normalizedBirthDate = normalizeBirthDate(input.birthDate);
+  if (!normalizedBirthDate) {
+    console.error("[fortune] invalid birthDate", input.birthDate);
+    return null;
+  }
+
   const [year, month, day] = normalizedBirthDate.split("-").map((v) => Number(v));
 
   if (!year || !month || !day || Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) {
-    throw new Error(`Failed to parse birthDate: ${input.birthDate}`);
+    console.error("[fortune] failed to parse birthDate", {
+      birthDate: input.birthDate,
+      normalizedBirthDate,
+    });
+    return null;
   }
 
-  const gogyoResult = calculateYinYangGogyo(normalizedBirthDate);
+  let gogyoResult: ReturnType<typeof calculateYinYangGogyo>;
+  try {
+    gogyoResult = calculateYinYangGogyo(normalizedBirthDate);
+  } catch (error) {
+    console.error("[fortune] calculateYinYangGogyo failed", {
+      birthDate: input.birthDate,
+      normalizedBirthDate,
+      error,
+    });
+    return null;
+  }
   const dayStem = gogyoResult.stem;
   const gogyo = gogyoResult.element;
   const kyusei = kyuseiMap[(year + 2) % 9];

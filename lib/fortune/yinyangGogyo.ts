@@ -77,6 +77,9 @@ const TABLE: Record<string, number> = buildMonthlyTable(TABLE_RANGE_START, TABLE
 
 export function calculateYinYangGogyo(birthDate: string): YinYangGogyoResult {
   const normalizedBirthDate = normalizeBirthDate(birthDate);
+  if (!normalizedBirthDate) {
+    throw new Error(`Failed to parse birthDate: ${birthDate}`);
+  }
   const [year, month, day] = normalizedBirthDate.split("-").map(Number);
 
   if (!year || !month || !day || Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) {

@@ -23,6 +23,16 @@ const directionByGogyo: Record<"木" | "火" | "土" | "金" | "水", string> = 
 
 export function getSimpleFortuneProfile(input: SimpleFortuneInput): SimpleFortuneProfile {
   const core = getFortuneProfile({ birthDate: input.birthDate, birthTime: input.birthTime });
+  if (!core) {
+    console.error("[fortune] getSimpleFortuneProfile fallback", input);
+    return {
+      dayStem: "-",
+      gogyo: "木",
+      kyusei: "-",
+      koseigaku: "-",
+      luckyDirection: "東",
+    };
+  }
   return {
     ...core,
     luckyDirection: directionByGogyo[core.gogyo as keyof typeof directionByGogyo] ?? "東",

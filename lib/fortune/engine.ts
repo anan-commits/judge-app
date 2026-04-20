@@ -7,9 +7,13 @@ import type { BirthInput, FortuneResult } from "./types";
 import { normalizeBirthDate } from "./normalizeBirthDate";
 
 export function calculateFortune(input: BirthInput): FortuneResult {
+  const normalizedBirthDate = normalizeBirthDate(input.birthDate);
+  if (!normalizedBirthDate) {
+    throw new Error(`Failed to parse birthDate: ${input.birthDate}`);
+  }
   const normalizedInput: BirthInput = {
     ...input,
-    birthDate: normalizeBirthDate(input.birthDate),
+    birthDate: normalizedBirthDate,
   };
   const warnings: string[] = [];
 

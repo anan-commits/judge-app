@@ -81,10 +81,18 @@ const selfProfile: PersonProfile = {
 
 function buildDisplayProfile(birthdate: string, birthtime: string) {
   const normalizedBirthDate = normalizeBirthDate(birthdate);
+  if (!normalizedBirthDate) {
+    console.error("[result] invalid birthDate", birthdate);
+    return null;
+  }
   const fortune = getFortuneProfile({
     birthDate: normalizedBirthDate,
     birthTime: birthtime,
   });
+  if (!fortune) {
+    console.error("[result] failed to build fortune profile", { birthdate, birthtime, normalizedBirthDate });
+    return null;
+  }
   return {
     birthdate: normalizedBirthDate,
     birthtime,
@@ -410,16 +418,16 @@ function ResultPageContent() {
     birthTime: activePartner?.birthtime,
   });
   const myDisplayProfile = {
-    dayStem: myProfile.dayStem,
-    gogyo: myProfile.gogyo,
-    kyusei: myProfile.kyusei,
-    koseigaku: myProfile.koseigaku,
+    dayStem: myProfile?.dayStem ?? "-",
+    gogyo: myProfile?.gogyo ?? "-",
+    kyusei: myProfile?.kyusei ?? "-",
+    koseigaku: myProfile?.koseigaku ?? "-",
   };
   const partnerDisplayProfile = {
-    dayStem: partnerProfile.dayStem,
-    gogyo: partnerProfile.gogyo,
-    kyusei: partnerProfile.kyusei,
-    koseigaku: partnerProfile.koseigaku,
+    dayStem: partnerProfile?.dayStem ?? "-",
+    gogyo: partnerProfile?.gogyo ?? "-",
+    kyusei: partnerProfile?.kyusei ?? "-",
+    koseigaku: partnerProfile?.koseigaku ?? "-",
   };
   const selfDisplay = buildDisplayProfile(selfBirthdate, selfBirthtime);
   const partnerDisplay = activePartner

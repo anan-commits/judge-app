@@ -6,6 +6,9 @@ const subtypes = ["調和型", "先導型", "分析型", "実行型", "慎重型
 
 export function calcKoseigaku(input: BirthInput): KoseigakuResult {
   const normalizedBirthDate = normalizeBirthDate(input.birthDate);
+  if (!normalizedBirthDate) {
+    throw new Error(`Failed to parse birthDate: ${input.birthDate}`);
+  }
   const digits = normalizedBirthDate.replaceAll("-", "").split("").map((v) => Number(v) || 0);
   const seed = digits.reduce((acc, n) => acc + n, 0);
 
