@@ -78,14 +78,14 @@ const selfProfile: PersonProfile = {
  */
 
 
-function buildDisplayProfile(base: PersonProfile) {
+function buildDisplayProfile(birthdate: string, birthtime: string) {
   const fortune = getFortuneProfile({
-    birthDate: base.birthdate,
-    birthTime: base.birthtime,
+    birthDate: birthdate,
+    birthTime: birthtime,
   });
   return {
-    birthdate: base.birthdate,
-    birthtime: base.birthtime,
+    birthdate,
+    birthtime,
     dayStem: fortune.dayStem,
     fiveElement: fortune.gogyo,
     nineStar: fortune.kyusei,
@@ -335,16 +335,23 @@ function ResultPageContent() {
   const [partnerProfiles, setPartnerProfiles] = useState<PersonProfile[]>([]);
   const [resultsByPartner, setResultsByPartner] = useState<CompatibilityResult[]>([]);
   const [diagnosisData, setDiagnosisData] = useState<DiagnosisPayload | null>(null);
+  const [selfBirthdate, setSelfBirthdate] = useState(selfProfile.birthdate);
+  const [selfBirthtime, setSelfBirthtime] = useState(selfProfile.birthtime);
 
   useEffect(() => {
     const birthdate = sessionStorage.getItem("judge-code:partner-birthdate");
     const birthtime = sessionStorage.getItem("judge-code:partner-birthtime");
     const diagnosisRaw = sessionStorage.getItem("judge-code:latest-diagnosis");
+    const storedSelfBirthdate = sessionStorage.getItem("judge-code:self-birthdate");
+    const storedSelfBirthtime = sessionStorage.getItem("judge-code:self-birthtime");
 
     if (!birthdate || !birthtime) {
       router.replace("/diagnosis");
       return;
     }
+
+    if (storedSelfBirthdate) setSelfBirthdate(storedSelfBirthdate);
+    if (storedSelfBirthtime) setSelfBirthtime(storedSelfBirthtime);
 
     const partner = buildPartnerProfile(birthdate, birthtime);
     const partnerList = [partner];
@@ -395,18 +402,36 @@ function ResultPageContent() {
     );
   }
 
-  const selfDisplay = buildDisplayProfile(selfProfile);
   const activePartner = partnerProfiles[activePartnerIndex] ?? null;
   const result = resultsByPartner[activePartnerIndex] ?? null;
-  const partnerDisplay = activePartner ? buildDisplayProfile(activePartner) : null;
-  const unifiedSelf = getFortuneProfile({
-    birthDate: selfProfile.birthdate,
-    birthTime: selfProfile.birthtime,
+  const myProfile = getFortuneProfile({
+    birthDate: selfBirthdate,
+    birthTime: selfBirthtime,
   });
-  const unifiedPartner = getFortuneProfile({
+  const partnerProfile = getFortuneProfile({
     birthDate: activePartner?.birthdate ?? "1995-03-21",
     birthTime: activePartner?.birthtime,
   });
+  const myDisplayProfile = {
+    dayStem: myProfile.dayStem,
+    gogyo: myProfile.gogyo,
+    kyusei: myProfile.kyusei,
+    koseigaku: myProfile.koseigaku,
+  };
+  const partnerDisplayProfile = {
+    dayStem: partnerProfile.dayStem,
+    gogyo: partnerProfile.gogyo,
+    kyusei: partnerProfile.kyusei,
+    koseigaku: partnerProfile.koseigaku,
+  };
+  const selfDisplay = buildDisplayProfile(selfBirthdate, selfBirthtime);
+  const partnerDisplay = activePartner
+    ? buildDisplayProfile(activePartner.birthdate, activePartner.birthtime)
+    : null;
+  console.log("myProfile", myProfile);
+  console.log("myDisplayProfile", myDisplayProfile);
+  console.log("partnerProfile", partnerProfile);
+  console.log("partnerDisplayProfile", partnerDisplayProfile);
   const recommendedAction = result?.actions[0] ?? "週1回15分の方針共有を設定する";
   const dangerAlert = result?.cautions[0] ?? "連絡間隔のズレで誤解が起きやすい状態です";
   const selfFortune = diagnosisData?.fortuneResult.self;
@@ -481,29 +506,29 @@ function ResultPageContent() {
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
                 <p className="font-semibold text-zinc-900">四柱推命（あなた）</p>
-                <p className="mt-1">日柱天干: {unifiedSelf.dayStem}</p>
-                <p>五行: {unifiedSelf.gogyo}</p>
-                <p>九星気学: {unifiedSelf.kyusei}</p>
-                <p>個性学: {unifiedSelf.koseigaku}</p>
+                <p className="mt-1">日柱天干: {myDisplayProfile.dayStem}</p>
+                <p>五行: {myDisplayProfile.gogyo}</p>
+                <p>九星気学: {myDisplayProfile.kyusei}</p>
+                <p>個性学: {myDisplayProfile.koseigaku}</p>
               </div>
               <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
                 <p className="font-semibold text-zinc-900">四柱推命（お相手）</p>
-                <p className="mt-1">日柱天干: {unifiedPartner.dayStem}</p>
-                <p>五行: {unifiedPartner.gogyo}</p>
-                <p>九星気学: {unifiedPartner.kyusei}</p>
-                <p>個性学: {unifiedPartner.koseigaku}</p>
+                <p className="mt-1">日柱天干: {partnerDisplayProfile.dayStem}</p>
+                <p>五行: {partnerDisplayProfile.gogyo}</p>
+                <p>九星気学: {partnerDisplayProfile.kyusei}</p>
+                <p>個性学: {partnerDisplayProfile.koseigaku}</p>
               </div>
             </div>
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
                 <p className="font-semibold text-zinc-900">五行バランス（お相手）</p>
-                <p className="mt-1">五行: {unifiedPartner.gogyo}</p>
-                <p>主軸: {unifiedPartner.gogyo}</p>
+                <p className="mt-1">五行: {partnerDisplayProfile.gogyo}</p>
+                <p>主軸: {partnerDisplayProfile.gogyo}</p>
               </div>
               <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
                 <p className="font-semibold text-zinc-900">九星気学（お相手）</p>
-                <p className="mt-1">本命星: {unifiedPartner.kyusei}</p>
-                <p>月命星: {unifiedPartner.kyusei}</p>
+                <p className="mt-1">本命星: {partnerDisplayProfile.kyusei}</p>
+                <p>月命星: {partnerDisplayProfile.kyusei}</p>
               </div>
             </div>
             <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
