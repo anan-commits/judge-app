@@ -101,6 +101,15 @@ export default function DiagnosisPage() {
         partnerBirthTime: partnerBirthtime || "",
       })
     );
+    sessionStorage.setItem(
+      LATEST_INPUT_KEY,
+      JSON.stringify({
+        myBirthDate: selfBirthDate,
+        myBirthTime: selfBirthtime || "",
+        partnerBirthDate: partnerBirthdate,
+        partnerBirthTime: partnerBirthtime || "",
+      })
+    );
     router.push("/result");
   };
 

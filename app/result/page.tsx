@@ -345,7 +345,9 @@ function ResultPageContent() {
   const [diagnosisData, setDiagnosisData] = useState<DiagnosisPayload | null>(null);
 
   useEffect(() => {
-    const latestInputRaw = localStorage.getItem(LATEST_INPUT_KEY);
+    // const latestInputRaw = localStorage.getItem(LATEST_INPUT_KEY);
+    // Temporarily disable localStorage read for source isolation.
+    const latestInputRaw = sessionStorage.getItem(LATEST_INPUT_KEY);
     const diagnosisRaw = sessionStorage.getItem("judge-code:latest-diagnosis");
     if (!latestInputRaw) {
       router.replace("/diagnosis");
@@ -446,6 +448,14 @@ function ResultPageContent() {
   console.log("birthDate raw", partnerBirthDate);
   console.log("birthDate normalized", normalizedPartnerBirthDate);
   console.log("profile", partnerProfile);
+  console.log("RIGHT CARD RENDER DATA", {
+    myBirthDate,
+    myBirthTime,
+    partnerBirthDate,
+    partnerBirthTime,
+    myProfile,
+    partnerProfile,
+  });
   const recommendedAction = result?.actions[0] ?? "週1回15分の方針共有を設定する";
   const dangerAlert = result?.cautions[0] ?? "連絡間隔のズレで誤解が起きやすい状態です";
   const selfFortune = diagnosisData?.fortuneResult.self;
@@ -467,6 +477,9 @@ function ResultPageContent() {
 
   return (
     <main className="min-h-screen bg-[#f7f7f5] text-zinc-900">
+      <div style={{ background: "red", color: "white", padding: 8 }}>
+        RESULT PAGE DEBUG MARKER
+      </div>
       <header className="border-b border-zinc-200/80 bg-[#f7f7f5]/90 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6 md:px-10">
           <a href="/" className="flex items-baseline gap-2">
