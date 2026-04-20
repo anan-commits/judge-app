@@ -10,6 +10,22 @@ import {
   type PersonProfile,
 } from "../lib/compatibility";
 
+type RelationshipConversionPattern = {
+  essence: string
+  tendency: string
+  neglectRisk: string
+  tease: string
+}
+
+const RELATIONSHIP_CONVERSION_PATTERNS: RelationshipConversionPattern[] = [
+  {
+    essence: "この関係は、近づくほど温度差が出やすい関係です",
+    tendency: "あなたはその中で、相手の反応に合わせすぎる傾向があります",
+    neglectRisk: "その結果、気づかないうちに主導権を失いやすいです",
+    tease: "この関係で一番重要なのは『距離の取り方』です"
+  }
+]
+
 const selfProfile: PersonProfile = {
   birthdate: "1992-11-08",
   birthtime: "08:24",
@@ -24,61 +40,7 @@ const luckyDirections = ["北", "北東", "東", "南東", "南", "南西", "西
  * 課金導線用コピー（MVPダミー）。essence→tendency→neglectRisk が一文脈でつながるストーリー。
  * 後から診断スコア・タイプと接続。
  */
-type RelationshipConversionPattern = {
-  essence: string;
-  tendency: string;
-  neglectRisk: string;
-  /** 本質の続きで最重要な一点をぼかして見せる（課金ティーズ） */
-  tease: string;
-};
 
-const RELATIONSHIP_CONVERSION_PATTERNS: RelationshipConversionPattern[] = [
-  {
-    essence: "この2人は、近づくほど「仲良さそうに見えて温度が合わない」空気が出やすい関係です。",
-    tendency:
-      "その空気の中で、あなたは返信が遅いと不安を口にしたり、確認の一言を重ねてしまいやすくなります。",
-    neglectRisk:
-      "相手は負担として距離を置き、あなただけが画面の前で空回りし続けやすいです。気づかないうちに関係が終わる可能性があります。",
-    tease:
-      "決定的なのは、LINEの文面そのものより「相手が無意識に出しているサイン」をどこで拾うかです。ここを外すと温度差は埋まらず、逆に“空回りのループ”だけが残りやすくなります。",
-  },
-  {
-    essence: "この2人は、言葉に出さないすれ違いが静かに積もりやすい関係です。",
-    tendency:
-      "その積もりを抱えたまま、あなたは察してほしい気持ちだけを増やし、LINEを開いては閉じるを繰り返しやすくなります。",
-    neglectRisk:
-      "ある日突然、相手からの温度がゼロになるタイミングが来やすいです。あなたが気づいたときには、もう戻れないラインまで進んでいる可能性があります。",
-    tease:
-      "本当に危ないのは、既読の有無より「沈黙の“長さ”と相手の生活リズムが重なる瞬間」です。この交差点を読めないまま送る一言が、関係を静かに終わらせるトリガーになりやすいです。",
-  },
-  {
-    essence: "この2人は、好意を出し合うほど踏み込みの度合いがズレやすい関係です。",
-    tendency:
-      "そのズレを埋めようとして、あなたは連絡の回数と文章量を増やし、「ちゃんと伝えよう」と必死になりやすくなります。",
-    neglectRisk:
-      "相手にとってはしつこさに見え、沈黙・既読スルー・距離の固定化に進みやすいです。挽回がきかないほど冷え切る可能性があります。",
-    tease:
-      "踏み込みの強さを調整する鍵は、文章の長さではなく「相手が今いる心理フェーズ」への合わせ方にあります。フェーズを誤ると、好意が一気に負担に反転しやすいです。",
-  },
-  {
-    essence: "この2人は、一度盛り上がったあと急に温度差が露わになりやすい関係です。",
-    tendency:
-      "その落差に耐えられず、あなたは我慢と追い討ちのあいだを往復し、自分を責める言葉まで増やしやすくなります。",
-    neglectRisk:
-      "あなたの我慢は相手に伝わらず、「別にいいや」で終わらせられやすいです。気づかないうちに関係が終わる可能性があります。",
-    tease:
-      "盛り上がり直後にだけ出る「相手の安心サイン」と、その後にだけ出る「距離を取るサイン」はセットで読む必要があります。片方だけを信じると、急な冷め込みにあなただけが取り残されやすいです。",
-  },
-  {
-    essence: "この2人は、表面的には穏やかでも、内心の不安だけが肥大化しやすい関係です。",
-    tendency:
-      "その不安を隠したまま、あなたは既読や返信の速さを何度も確かめ、小さなサインを探し続けやすくなります。",
-    neglectRisk:
-      "本音のタイミングを逃したまま時間が空くほど、相手は勝手な解釈で距離を決めやすいです。あなたが気づいたときには、もう終わっている可能性があります。",
-    tease:
-      "表面の穏やかさが続くほど、相手の頭の中では「別ルートの結論」が先に固まりやすいです。あなたが気づく前に、会話の前提だけがすり替わっているパターンが起きやすいです。",
-  },
-];
 
 const nineStarLabels = [
   "",
@@ -157,7 +119,23 @@ function RelationshipEssenceSection({
         >
           関係性 → あなたの動き → その先に待っている落とし穴
         </h2>
+        <div className="mt-4 space-y-3">
+  <p className="text-base font-semibold text-zinc-900">
+    {essence}
+  </p>
 
+  <p className="text-sm text-zinc-700">
+    {tendency}
+  </p>
+
+  <p className="text-sm font-semibold text-red-600">
+    {neglectRisk}
+  </p>
+
+  <p className="text-sm text-zinc-500">
+    {tease}
+  </p>
+</div>
         <div className="mt-6 max-w-2xl space-y-6 border-l-2 border-amber-200/90 pl-4 sm:pl-5">
           <div>
             <p className="text-[11px] font-semibold tracking-wide text-amber-900/75">関係性</p>
