@@ -20,7 +20,10 @@ const selfProfile: PersonProfile = {
 
 const dayStems = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"] as const;
 const luckyDirections = ["北", "北東", "東", "南東", "南", "南西", "西", "北西"] as const;
-/** 課金導線用コピー（MVPダミー）。後から診断スコア・タイプと接続 */
+/**
+ * 課金導線用コピー（MVPダミー）。essence→tendency→neglectRisk が一文脈でつながるストーリー。
+ * 後から診断スコア・タイプと接続。
+ */
 type RelationshipConversionPattern = {
   essence: string;
   tendency: string;
@@ -29,39 +32,41 @@ type RelationshipConversionPattern = {
 
 const RELATIONSHIP_CONVERSION_PATTERNS: RelationshipConversionPattern[] = [
   {
-    essence: "この2人は、近づくほど温度差が出やすい関係です。",
-    tendency: "あなたは、返信が遅いと不安を言葉にしやすいです。",
+    essence: "この2人は、近づくほど「仲良さそうに見えて温度が合わない」空気が出やすい関係です。",
+    tendency:
+      "その空気の中で、あなたは返信が遅いと不安を口にしたり、確認の一言を重ねてしまいやすくなります。",
     neglectRisk:
-      "あなたが様子見を続けるほど、相手だけが距離を取りやすくなり、あなたは空回りと疲れを抱えやすいです。",
+      "相手は負担として距離を置き、あなただけが画面の前で空回りし続けやすいです。気づかないうちに関係が終わる可能性があります。",
   },
   {
-    essence: "この2人は、表面的には穏やかでも温度差が残りやすい関係です。",
-    tendency: "あなたは、既読や返信の速さを何度も確認しやすいです。",
+    essence: "この2人は、言葉に出さないすれ違いが静かに積もりやすい関係です。",
+    tendency:
+      "その積もりを抱えたまま、あなたは察してほしい気持ちだけを増やし、LINEを開いては閉じるを繰り返しやすくなります。",
     neglectRisk:
-      "あなたが我慢を重ねるほど、本音のタイミングを逃しやすく、あとから一気に不信感が膨らみやすいです。",
+      "ある日突然、相手からの温度がゼロになるタイミングが来やすいです。あなたが気づいたときには、もう戻れないラインまで進んでいる可能性があります。",
   },
   {
-    essence: "この2人は、追いかけるほど相手が後ずさりしやすい関係です。",
-    tendency: "あなたは、好意を示すほど踏み込みが強くなりやすいです。",
+    essence: "この2人は、好意を出し合うほど踏み込みの度合いがズレやすい関係です。",
+    tendency:
+      "そのズレを埋めようとして、あなたは連絡の回数と文章量を増やし、「ちゃんと伝えよう」と必死になりやすくなります。",
     neglectRisk:
-      "あなたが勢いで連絡を重ねるほど、相手は負担として受け取りやすく、沈黙が長引きやすいです。",
+      "相手にとってはしつこさに見え、沈黙・既読スルー・距離の固定化に進みやすいです。挽回がきかないほど冷え切る可能性があります。",
   },
   {
-    essence: "この2人は、すれ違いが積み重なると冷め方が急になりやすい関係です。",
-    tendency: "あなたは、察してほしい気持ちを抱えたまま動きにくくなりやすいです。",
+    essence: "この2人は、一度盛り上がったあと急に温度差が露わになりやすい関係です。",
+    tendency:
+      "その落差に耐えられず、あなたは我慢と追い討ちのあいだを往復し、自分を責める言葉まで増やしやすくなります。",
     neglectRisk:
-      "あなたが説明を避けたまま時間が空くほど、相手は勝手な解釈で距離を決めやすく、取り返しがつきにくくなりやすいです。",
+      "あなたの我慢は相手に伝わらず、「別にいいや」で終わらせられやすいです。気づかないうちに関係が終わる可能性があります。",
+  },
+  {
+    essence: "この2人は、表面的には穏やかでも、内心の不安だけが肥大化しやすい関係です。",
+    tendency:
+      "その不安を隠したまま、あなたは既読や返信の速さを何度も確かめ、小さなサインを探し続けやすくなります。",
+    neglectRisk:
+      "本音のタイミングを逃したまま時間が空くほど、相手は勝手な解釈で距離を決めやすいです。あなたが気づいたときには、もう終わっている可能性があります。",
   },
 ];
-
-function pickRelationshipConversionPatternIndex(partnerBirthdate: string | undefined): number {
-  const digits = partnerBirthdate?.replaceAll(/\D/g, "") ?? "";
-  let sum = 0;
-  for (let i = 0; i < digits.length; i += 1) {
-    sum += digits.charCodeAt(i);
-  }
-  return sum % RELATIONSHIP_CONVERSION_PATTERNS.length;
-}
 
 const nineStarLabels = [
   "",
@@ -105,9 +110,20 @@ function buildDisplayProfile(base: PersonProfile) {
   };
 }
 
+function pickStoryPatternIndex(partnerBirthdate: string | undefined): number {
+  const digits = partnerBirthdate?.replaceAll(/\D/g, "") ?? "";
+  let sum = 0;
+  for (let i = 0; i < digits.length; i += 1) {
+    sum += digits.charCodeAt(i);
+  }
+  const seeded = sum % RELATIONSHIP_CONVERSION_PATTERNS.length;
+  const jitter = Math.floor(Math.random() * RELATIONSHIP_CONVERSION_PATTERNS.length);
+  return (seeded + jitter) % RELATIONSHIP_CONVERSION_PATTERNS.length;
+}
+
 function RelationshipEssenceSection({ partnerBirthdate }: { partnerBirthdate: string | undefined }) {
-  const i = pickRelationshipConversionPatternIndex(partnerBirthdate);
-  const { essence, tendency, neglectRisk } = RELATIONSHIP_CONVERSION_PATTERNS[i];
+  const [patternIndex] = useState(() => pickStoryPatternIndex(partnerBirthdate));
+  const { essence, tendency, neglectRisk } = RELATIONSHIP_CONVERSION_PATTERNS[patternIndex];
   return (
     <section
       className="border-b-2 border-amber-300/70 bg-gradient-to-br from-amber-50 via-orange-50/95 to-rose-50/50 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.65)]"
@@ -115,42 +131,37 @@ function RelationshipEssenceSection({ partnerBirthdate }: { partnerBirthdate: st
     >
       <div className="mx-auto max-w-6xl px-5 py-8 sm:px-8 md:px-10 md:py-10">
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-900/65">
-          いまの関係を3つに分けて整理
+          いまの関係を、一文のストーリーで読み解く
         </p>
         <h2
           id="relationship-conversion-heading"
           className="mt-2 text-base font-semibold leading-snug text-amber-950 sm:text-lg"
         >
-          次の一手の前に、起きやすい落とし穴を押さえましょう
+          関係性 → あなたの動き → その先に待っている落とし穴
         </h2>
 
-        <div className="mt-5 flex flex-col gap-3 sm:gap-4">
-          <article className="rounded-2xl border border-amber-200/90 bg-white/85 p-4 shadow-sm sm:p-5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-900/75">
-              本質（関係性）
-            </p>
-            <p className="mt-2 text-sm font-medium leading-relaxed text-amber-950 sm:text-[15px]">
+        <div className="mt-6 max-w-2xl space-y-6 border-l-2 border-amber-200/90 pl-4 sm:pl-5">
+          <div>
+            <p className="text-[11px] font-semibold tracking-wide text-amber-900/75">関係性</p>
+            <p className="mt-1.5 text-sm font-normal leading-[1.75] text-amber-950 sm:text-[15px]">
               {essence}
             </p>
-          </article>
-
-          <article className="rounded-2xl border border-amber-200/90 bg-white/85 p-4 shadow-sm sm:p-5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-900/75">
-              あなた側の傾向
-            </p>
-            <p className="mt-2 text-sm font-medium leading-relaxed text-amber-950 sm:text-[15px]">
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold tracking-wide text-amber-900/75">その中でのあなた</p>
+            <p className="mt-1.5 text-sm font-normal leading-[1.75] text-amber-950 sm:text-[15px]">
               {tendency}
             </p>
-          </article>
-
-          <article className="rounded-2xl border-2 border-rose-300/90 bg-rose-50/95 p-4 shadow-md ring-1 ring-rose-200/60 sm:p-5">
-            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-rose-900">
-              放置リスク
-            </p>
-            <p className="mt-2 text-sm font-semibold leading-relaxed text-rose-950 sm:text-[15px]">
+          </div>
+          <div
+            role="note"
+            className="rounded-r-xl border-l-4 border-red-600 bg-red-50/95 py-3 pl-4 pr-3 shadow-sm sm:py-4 sm:pl-5"
+          >
+            <p className="text-[11px] font-bold tracking-wide text-red-900">その結果（放置リスク）</p>
+            <p className="mt-2 text-sm font-semibold leading-[1.75] text-red-950 sm:text-[15px]">
               {neglectRisk}
             </p>
-          </article>
+          </div>
         </div>
       </div>
     </section>
