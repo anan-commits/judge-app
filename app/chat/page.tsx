@@ -66,6 +66,7 @@ type StrategyAnalysis = {
   linePatterns?: { type: string; text: string }[];
   ngList?: string[];
   point?: string;
+  usedHistory?: boolean;
 };
 
 type LiveAnalysisEntry = {
@@ -73,6 +74,13 @@ type LiveAnalysisEntry = {
   mode: StrategyMode;
   userText: string;
   analysis: StrategyAnalysis;
+};
+
+type RelationshipLogItem = {
+  id: string;
+  date: string;
+  type: "LINE" | "デート" | "気づき";
+  content: string;
 };
 
 const dummyThreads: ConsultThread[] = [
@@ -281,6 +289,71 @@ function buildStrategyAnalysis(mode: StrategyMode, text: string): StrategyAnalys
   };
 }
 
+function getLogsFromStorage(): RelationshipLogItem[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem("judge-code:relationship-logs");
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as RelationshipLogItem[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+async function buildStrategyAnalysisViaApi(
+  mode: StrategyMode,
+  text: string
+): Promise<StrategyAnalysis | null> {
+  try {
+    const logs = getLogsFromStorage();
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userInput: text, mode, logs }),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      usedHistory?: boolean;
+      generic?: { status?: string; action?: string; ng?: string; note?: string };
+      line?: { light?: string; lead?: string; reason?: string };
+    };
+
+    if (mode === "line") {
+      const light = data.line?.light || "今日はありがとう。落ち着いたらまた話せると嬉しい。";
+      const lead = data.line?.lead || "今週どこかで少し話せる？タイミング合わせたい。";
+      return {
+        kind: "line",
+        title: "LINE生成",
+        line1: "ログを踏まえた現状整理を反映しています。",
+        line2: "",
+        line3: "",
+        paidLine: light,
+        lineDraft: light,
+        linePatterns: [
+          { type: "軽め", text: light },
+          { type: "少し主導", text: lead },
+        ],
+        ngList: ["感情のぶつけ連投", "返事を急かす圧のある文", "過去の不満を一度に書く"],
+        point: data.line?.reason || "相手の温度を下げず、前進しやすい文面です。",
+        usedHistory: Boolean(data.usedHistory),
+      };
+    }
+
+    return {
+      kind: "generic",
+      title: mode === "reply" ? "返信分析" : mode === "position" ? "ポジション分析" : "未来分岐",
+      line1: `現在の関係ステータス: ${data.generic?.status || "慎重フェーズ"}`,
+      line2: `次に取るべき行動: ${data.generic?.action || "要点1つで送る"}`,
+      line3: `NG行動: ${data.generic?.ng || "感情の連投"}`,
+      paidLine: `補足: ${data.generic?.note || "ログを重ねると精度が上がります。"}`,
+      usedHistory: Boolean(data.usedHistory),
+    };
+  } catch {
+    return null;
+  }
+}
+
 function StrategyAnalysisCard({
   analysis,
   locked,
@@ -310,6 +383,9 @@ function StrategyAnalysisCard({
     return (
       <article className="max-w-[96%] rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm leading-relaxed text-zinc-800">
         <p className="text-xs font-semibold tracking-wide text-zinc-500">{analysis.title}</p>
+        {analysis.usedHistory ? (
+          <p className="mt-1 text-xs text-gray-400">過去のやり取りをもとに分析しています</p>
+        ) : null}
         <div className="mt-3 rounded-lg border border-red-300 bg-red-50 p-4">
           <p className="font-bold text-red-700">
             ⚠️ このまま進むと「都合のいい人」で終わる可能性があります
@@ -398,6 +474,9 @@ function StrategyAnalysisCard({
   return (
     <article className="max-w-[96%] rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm leading-relaxed text-zinc-800">
       <p className="text-xs font-semibold tracking-wide text-zinc-500">{analysis.title}</p>
+      {analysis.usedHistory ? (
+        <p className="mt-1 text-xs text-gray-400">過去のやり取りをもとに分析しています</p>
+      ) : null}
       <div className="mt-2 space-y-1.5">
         <p>{analysis.line1}</p>
         <p>{analysis.line2}</p>
@@ -425,6 +504,7 @@ function ChatPageContent() {
   const [showDiagnosisNudge, setShowDiagnosisNudge] = useState(false);
   const [strategyMode, setStrategyMode] = useState<StrategyMode>("reply");
   const [liveEntries, setLiveEntries] = useState<LiveAnalysisEntry[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const isFullDemo = searchParams.get("full") === "1";
   const isFreeUser = !isFullDemo;
@@ -488,10 +568,12 @@ function ChatPageContent() {
     .find((entry) => entry.analysis.kind === "line");
   const fixedCopyText = latestLineEntry?.analysis.linePatterns?.[0]?.text ?? latestLineEntry?.analysis.lineDraft ?? "";
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const text = draft.trim();
     if (text.length > 0) {
-      const analysis = buildStrategyAnalysis(strategyMode, text);
+      setIsGenerating(true);
+      const apiAnalysis = await buildStrategyAnalysisViaApi(strategyMode, text);
+      const analysis = apiAnalysis ?? buildStrategyAnalysis(strategyMode, text);
       setLiveEntries((prev) => [
         ...prev,
         {
@@ -501,6 +583,7 @@ function ChatPageContent() {
           analysis,
         },
       ]);
+      setIsGenerating(false);
     }
     if (mode === "undiagnosed" && text.length > 0) {
       const nextCount = sendCount + 1;
@@ -708,9 +791,12 @@ function ChatPageContent() {
               <button
                 type="button"
                 onClick={handleSend}
-                className="inline-flex h-11 min-h-[44px] items-center justify-center rounded-full bg-zinc-900 px-6 text-sm font-medium text-white hover:bg-zinc-800"
+                disabled={isGenerating}
+                className={`inline-flex h-11 min-h-[44px] items-center justify-center rounded-full px-6 text-sm font-medium text-white ${
+                  isGenerating ? "cursor-not-allowed bg-zinc-400" : "bg-zinc-900 hover:bg-zinc-800"
+                }`}
               >
-                送信（準備中）
+                {isGenerating ? "分析中..." : "送信（準備中）"}
               </button>
             </div>
           </div>
