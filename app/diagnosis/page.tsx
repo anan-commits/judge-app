@@ -3,6 +3,7 @@
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { getSimpleFortuneProfile } from "../../lib/fortune/simpleProfile";
 
 type SelfInsight = {
   typeName: string;
@@ -45,6 +46,8 @@ export default function DiagnosisPage() {
     const i = Math.floor(Math.random() * SELF_INSIGHTS.length);
     return SELF_INSIGHTS[i] ?? SELF_INSIGHTS[0];
   });
+  const myFortuneProfile = getSimpleFortuneProfile(selfBirthdate || "1992-11-08");
+  const partnerFortuneProfile = getSimpleFortuneProfile(partnerBirthdate || "1995-03-21");
 
   const scrollToPartnerInput = () => {
     setShowPartnerStep(true);
@@ -214,6 +217,25 @@ export default function DiagnosisPage() {
             <p className="mt-1 text-xs leading-relaxed text-zinc-500">
               生年月日だけでも進めます。出生時間は任意です。
             </p>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl border border-zinc-200 bg-white p-4">
+                <h4 className="text-base font-bold text-zinc-900">あなた</h4>
+                <div className="mt-3 space-y-1 text-sm text-gray-700">
+                  <div>九星気学：{myFortuneProfile.kyusei}</div>
+                  <div>四柱推命：{myFortuneProfile.pillar}</div>
+                  <div>個性学：{myFortuneProfile.koseigaku}</div>
+                </div>
+              </div>
+              <div className="rounded-xl border border-zinc-200 bg-white p-4">
+                <h4 className="text-base font-bold text-zinc-900">お相手</h4>
+                <div className="mt-3 space-y-1 text-sm text-gray-700">
+                  <div>九星気学：{partnerFortuneProfile.kyusei}</div>
+                  <div>四柱推命：{partnerFortuneProfile.pillar}</div>
+                  <div>個性学：{partnerFortuneProfile.koseigaku}</div>
+                </div>
+              </div>
+            </div>
 
             <form onSubmit={handleFinalSubmit} className="mt-4 space-y-4">
               <div className="space-y-1.5">
