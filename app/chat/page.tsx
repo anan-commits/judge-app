@@ -9,6 +9,8 @@ import {
   type CompatibilityResult,
   type PersonProfile,
 } from "../lib/compatibility";
+import { loadPeople } from "../../lib/people/storage";
+import type { Person, Relationship } from "../../lib/people/types";
 
 const selfProfile: PersonProfile = {
   birthdate: "1992-11-08",
@@ -95,6 +97,14 @@ type LatestInput = {
   partnerBirthDate?: string;
   partnerBirthTime?: string;
   personId?: string;
+  relationshipType?: Relationship["type"];
+};
+
+const relationshipLabelMap: Record<Relationship["type"], string> = {
+  love: "恋愛",
+  work: "仕事",
+  friend: "友人",
+  family: "家族",
 };
 
 function buildPhaseMeta(
@@ -343,13 +353,15 @@ function buildStrategyAnalysis(mode: StrategyMode, text: string): StrategyAnalys
   };
 }
 
-function getLogsFromStorage(): RelationshipLogItem[] {
+function getLogsFromStorage(personId?: string): RelationshipLogItem[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = window.localStorage.getItem("judge_relationship_logs");
     if (!raw) return [];
     const parsed = JSON.parse(raw) as RelationshipLogItem[];
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    if (!personId) return parsed;
+    return parsed.filter((item) => item.personId === personId);
   } catch {
     return [];
   }
@@ -357,11 +369,16 @@ function getLogsFromStorage(): RelationshipLogItem[] {
 
 async function buildStrategyAnalysisViaApi(
   mode: StrategyMode,
-  text: string
+  text: string,
+  context?: {
+    currentPerson?: Person | null;
+    currentPersonId?: string;
+    latestInput?: LatestInput | null;
+  }
 ): Promise<StrategyAnalysis | null> {
   try {
     const meta = buildPhaseMeta(mode, text);
-    const logs = getLogsFromStorage().map((item) => ({
+    const logs = getLogsFromStorage(context?.currentPersonId).map((item) => ({
       id: item.id,
       date:
         item.date ||
@@ -377,7 +394,23 @@ async function buildStrategyAnalysisViaApi(
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userInput: text, mode, logs }),
+      body: JSON.stringify({
+        userInput: text,
+        mode,
+        logs,
+        context: {
+          person: context?.currentPerson
+            ? {
+                id: context.currentPerson.id,
+                name: context.currentPerson.name,
+                birthDate: context.currentPerson.birthDate,
+                birthTime: context.currentPerson.birthTime,
+                memo: context.currentPerson.memo,
+              }
+            : null,
+          latestInput: context?.latestInput ?? null,
+        },
+      }),
     });
     if (!res.ok) return null;
     const data = (await res.json()) as {
@@ -624,6 +657,9 @@ function ChatPageContent() {
   const [mode, setMode] = useState<ChatMode>("loading");
   const [result, setResult] = useState<CompatibilityResult | null>(null);
   const [partner, setPartner] = useState<PersonProfile | null>(null);
+  const [latestInput, setLatestInput] = useState<LatestInput | null>(null);
+  const [people, setPeople] = useState<Person[]>([]);
+  const [currentPersonId, setCurrentPersonId] = useState<string>("");
   const [draft, setDraft] = useState("");
   const [sendCount, setSendCount] = useState(0);
   const [showDiagnosisNudge, setShowDiagnosisNudge] = useState(false);
@@ -646,8 +682,15 @@ function ChatPageContent() {
         latest = null;
       }
     }
-    const storedBirthdate = latest?.partnerBirthDate;
-    const storedBirthtime = latest?.partnerBirthTime;
+    const loadedPeople = loadPeople();
+    setPeople(loadedPeople);
+    const initialPersonId = latest?.personId || loadedPeople[0]?.id || "";
+    setCurrentPersonId(initialPersonId);
+    setLatestInput(latest);
+
+    const selectedPerson = loadedPeople.find((person) => person.id === initialPersonId) ?? null;
+    const storedBirthdate = selectedPerson?.birthDate || latest?.partnerBirthDate;
+    const storedBirthtime = selectedPerson?.birthTime || latest?.partnerBirthTime;
     const hasStoredPartner = Boolean(storedBirthdate);
 
     if (isFullDemo) {
@@ -672,6 +715,20 @@ function ChatPageContent() {
     setResult(null);
     setMode("undiagnosed");
   }, [isFullDemo]);
+
+  useEffect(() => {
+    if (mode === "loading") return;
+    if (isFullDemo) return;
+    const selectedPerson = people.find((person) => person.id === currentPersonId) ?? null;
+    if (!selectedPerson?.birthDate) return;
+    const partnerProfile = buildPartnerProfile(
+      selectedPerson.birthDate,
+      selectedPerson.birthTime || "12:00"
+    );
+    setPartner(partnerProfile);
+    setResult(calculateCompatibility(selfProfile, partnerProfile));
+    setMode("diagnosed");
+  }, [currentPersonId, people, mode, isFullDemo]);
 
   useEffect(() => {
     if (mode !== "undiagnosed") {
@@ -708,7 +765,12 @@ function ChatPageContent() {
     const text = draft.trim();
     if (text.length > 0) {
       setIsGenerating(true);
-      const apiAnalysis = await buildStrategyAnalysisViaApi(strategyMode, text);
+      const currentPerson = people.find((person) => person.id === currentPersonId) ?? null;
+      const apiAnalysis = await buildStrategyAnalysisViaApi(strategyMode, text, {
+        currentPerson,
+        currentPersonId,
+        latestInput,
+      });
       const analysis = apiAnalysis ?? buildStrategyAnalysis(strategyMode, text);
       setLiveEntries((prev) => [
         ...prev,
@@ -780,6 +842,31 @@ function ChatPageContent() {
               <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-500">
                 2人の相性サマリー
               </p>
+              <p className="mt-1 text-xs text-zinc-600">
+                今の相談相手：
+                {people.find((person) => person.id === currentPersonId)?.name || "未選択"}
+                （
+                {relationshipLabelMap[(latestInput?.relationshipType || "love") as Relationship["type"]]}
+                ）
+              </p>
+              {people.length > 0 ? (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {people.map((person) => (
+                    <button
+                      key={person.id}
+                      type="button"
+                      onClick={() => setCurrentPersonId(person.id)}
+                      className={`rounded-full border px-2.5 py-1 text-[11px] ${
+                        currentPersonId === person.id
+                          ? "border-zinc-900 bg-zinc-900 text-white"
+                          : "border-zinc-300 bg-white text-zinc-700"
+                      }`}
+                    >
+                      {person.name || "未命名"}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
               <div className="mt-2 flex flex-wrap gap-2">
                 {summaryTags.map((tag) => (
                   <span

@@ -7,6 +7,23 @@ type ChatRequestBody = {
   userInput?: string;
   mode?: ChatMode;
   logs?: LogItem[];
+  context?: {
+    person?: {
+      id?: string;
+      name?: string;
+      birthDate?: string;
+      birthTime?: string;
+      memo?: string;
+    } | null;
+    latestInput?: {
+      myBirthDate?: string;
+      myBirthTime?: string;
+      partnerBirthDate?: string;
+      partnerBirthTime?: string;
+      personId?: string;
+      relationshipType?: string;
+    } | null;
+  };
 };
 
 function parseLineOutput(content: string) {
@@ -57,12 +74,27 @@ export async function POST(req: Request) {
     const userInput = (body.userInput || "").trim();
     const mode: ChatMode = body.mode || "reply";
     const logs = Array.isArray(body.logs) ? body.logs : [];
+    const context = body.context;
 
     if (!userInput) {
       return NextResponse.json({ error: "userInput is required" }, { status: 400 });
     }
 
-    const prompt = mode === "line" ? buildLinePrompt(userInput, logs) : buildPrompt(userInput, logs);
+    const contextText =
+      context?.person || context?.latestInput
+        ? `\n\n【相談コンテキスト】\n${JSON.stringify(
+            {
+              person: context?.person ?? null,
+              latestInput: context?.latestInput ?? null,
+            },
+            null,
+            2
+          )}`
+        : "";
+    const contextualInput = `${userInput}${contextText}`;
+    const prompt = mode === "line"
+      ? buildLinePrompt(contextualInput, logs)
+      : buildPrompt(contextualInput, logs);
     const apiKey = process.env.OPENAI_API_KEY;
 
     if (!apiKey) {
