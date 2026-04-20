@@ -78,6 +78,78 @@ function ResultPersonHeader({ label, initial }: { label: string; initial: string
   );
 }
 
+type DisplayProfile = ReturnType<typeof buildDisplayProfile>;
+
+function compatibilityBridgeCopy(result: CompatibilityResult | null): string {
+  const score = result?.totalScore ?? 0;
+  const fe = result?.breakdown.fiveElement ?? 0;
+  if (score >= 72 && fe >= 28) {
+    return "この2人は土台相性が強い組み合わせです。";
+  }
+  if (score >= 58) {
+    return "この2人は違いを補い合いながら伸びるタイプです。";
+  }
+  return "この2人はペースのズレに気をつければ前向きに進めます。";
+}
+
+function ProfileStatusCard({
+  title,
+  display,
+}: {
+  title: string;
+  display: DisplayProfile | null;
+}) {
+  const d = display;
+  return (
+    <article className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)] sm:p-6 md:rounded-3xl md:p-7">
+      <p className="text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">{title}</p>
+      <div className="mt-4 space-y-2.5 text-sm leading-relaxed text-zinc-700">
+        <p>
+          生年月日:{" "}
+          <span className="font-semibold text-zinc-900">{d?.birthdate ?? "-"}</span>
+        </p>
+        <p className="hidden md:block">
+          出生時間: <span className="font-semibold text-zinc-900">{d?.birthtime ?? "-"}</span>
+        </p>
+        <p className="hidden md:block">
+          日柱天干: <span className="font-semibold text-zinc-900">{d?.dayStem ?? "-"}</span>
+        </p>
+        <p>
+          五行: <span className="font-semibold text-zinc-900">{d?.fiveElement ?? "-"}</span>
+        </p>
+        <p>
+          九星気学: <span className="font-semibold text-zinc-900">{d?.nineStar ?? "-"}</span>
+        </p>
+        <p>
+          個性学: <span className="font-semibold text-zinc-900">{d?.personality ?? "-"}</span>
+        </p>
+        <p className="hidden md:block">
+          吉方位: <span className="font-semibold text-zinc-900">{d?.luckyDirection ?? "-"}</span>
+        </p>
+        <details className="group mt-1 rounded-xl border border-zinc-200 bg-zinc-50/90 px-3 py-2 md:hidden">
+          <summary className="cursor-pointer list-none text-xs font-medium text-zinc-600 marker:hidden [&::-webkit-details-marker]:hidden">
+            <span className="underline decoration-zinc-300 underline-offset-2">
+              その他（出生時間・日柱天干・吉方位）
+            </span>
+          </summary>
+          <div className="mt-3 space-y-2 border-t border-zinc-200/80 pt-3 text-xs leading-relaxed text-zinc-600">
+            <p>
+              出生時間:{" "}
+              <span className="font-medium text-zinc-800">{d?.birthtime ?? "-"}</span>
+            </p>
+            <p>
+              日柱天干: <span className="font-medium text-zinc-800">{d?.dayStem ?? "-"}</span>
+            </p>
+            <p>
+              吉方位: <span className="font-medium text-zinc-800">{d?.luckyDirection ?? "-"}</span>
+            </p>
+          </div>
+        </details>
+      </div>
+    </article>
+  );
+}
+
 export default function ResultPage() {
   const router = useRouter();
   const [saved, setSaved] = useState(false);
@@ -168,11 +240,11 @@ export default function ResultPage() {
           </p>
           <div className="mt-6 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-4 text-sm text-zinc-700">
             <p>
-              相手の生年月日:{" "}
+              お相手の生年月日:{" "}
               <span className="font-semibold text-zinc-900">{activePartner?.birthdate ?? "-"}</span>
             </p>
             <p className="mt-1">
-              相手の出生時間:{" "}
+              お相手の出生時間:{" "}
               <span className="font-semibold text-zinc-900">{activePartner?.birthtime ?? "-"}</span>
             </p>
           </div>
@@ -180,68 +252,53 @@ export default function ResultPage() {
       </section>
 
       <section className="mx-auto max-w-6xl px-6 py-10 md:px-10 md:py-14">
-        <div className="flex gap-3 sm:gap-4" role="group" aria-label="診断対象">
-          <ResultPersonHeader label="あなた" initial="あ" />
-          <ResultPersonHeader label="相手" initial="相" />
+        <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)] sm:p-6 md:rounded-3xl md:p-7">
+          <p className="text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">相性サマリー</p>
+          <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:gap-8">
+            <div>
+              <p className="text-sm text-zinc-600">総合相性スコア</p>
+              <p className="mt-1 text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">
+                {result?.totalScore ?? 0}
+                <span className="text-lg font-medium text-zinc-500">/100</span>
+              </p>
+            </div>
+            <div className="min-w-0 sm:max-w-md">
+              <p className="text-sm text-zinc-600">タイプ</p>
+              <p className="mt-1 text-lg font-semibold leading-snug text-zinc-900 sm:text-xl">
+                {result?.relationshipType ?? "-"}
+              </p>
+            </div>
+          </div>
+          <p className="mt-4 text-sm leading-relaxed text-zinc-700 line-clamp-3 md:line-clamp-none md:text-[15px]">
+            {result?.summary ?? "診断結果を読み込んでいます。"}
+          </p>
+          <p className="mt-2 text-[11px] text-zinc-500 md:hidden">全文は下の「総評（全文）」でもご覧いただけます。</p>
         </div>
 
-        <div className="mt-6 grid grid-cols-1 gap-6 md:mt-8 md:grid-cols-2 md:gap-5">
-          <article className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)] sm:p-6 md:rounded-3xl md:p-7">
-            <p className="text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">あなたの占術ステータス</p>
-            <div className="mt-4 space-y-2.5 text-sm leading-relaxed text-zinc-700">
-              <p>
-                生年月日: <span className="font-semibold text-zinc-900">{selfDisplay.birthdate}</span>
-              </p>
-              <p>
-                出生時間: <span className="font-semibold text-zinc-900">{selfDisplay.birthtime}</span>
-              </p>
-              <p>
-                日柱天干: <span className="font-semibold text-zinc-900">{selfDisplay.dayStem}</span>
-              </p>
-              <p>
-                五行: <span className="font-semibold text-zinc-900">{selfDisplay.fiveElement}</span>
-              </p>
-              <p>
-                九星気学: <span className="font-semibold text-zinc-900">{selfDisplay.nineStar}</span>
-              </p>
-              <p>
-                個性学: <span className="font-semibold text-zinc-900">{selfDisplay.personality}</span>
-              </p>
-              <p>
-                吉方位: <span className="font-semibold text-zinc-900">{selfDisplay.luckyDirection}</span>
-              </p>
-            </div>
-          </article>
-          <article className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)] sm:p-6 md:rounded-3xl md:p-7">
-            <p className="text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">相手の占術ステータス</p>
-            <div className="mt-4 space-y-2.5 text-sm leading-relaxed text-zinc-700">
-              <p>
-                生年月日:{" "}
-                <span className="font-semibold text-zinc-900">{partnerDisplay?.birthdate ?? "-"}</span>
-              </p>
-              <p>
-                出生時間:{" "}
-                <span className="font-semibold text-zinc-900">{partnerDisplay?.birthtime ?? "-"}</span>
-              </p>
-              <p>
-                日柱天干: <span className="font-semibold text-zinc-900">{partnerDisplay?.dayStem ?? "-"}</span>
-              </p>
-              <p>
-                五行: <span className="font-semibold text-zinc-900">{partnerDisplay?.fiveElement ?? "-"}</span>
-              </p>
-              <p>
-                九星気学: <span className="font-semibold text-zinc-900">{partnerDisplay?.nineStar ?? "-"}</span>
-              </p>
-              <p>
-                個性学:{" "}
-                <span className="font-semibold text-zinc-900">{partnerDisplay?.personality ?? "-"}</span>
-              </p>
-              <p>
-                吉方位:{" "}
-                <span className="font-semibold text-zinc-900">{partnerDisplay?.luckyDirection ?? "-"}</span>
-              </p>
-            </div>
-          </article>
+        <p className="mt-6 text-center text-xs font-medium leading-relaxed text-zinc-500 md:hidden">
+          2人の基本プロフィール
+        </p>
+
+        <div
+          className="mt-3 flex flex-col gap-3 md:mt-8 md:flex-row md:gap-4"
+          role="group"
+          aria-label="診断対象"
+        >
+          <ResultPersonHeader label="あなた" initial="あ" />
+          <ResultPersonHeader label="お相手" initial="相" />
+        </div>
+
+        <div className="mt-6 flex flex-col gap-6 md:hidden">
+          <ProfileStatusCard title="あなたの占術ステータス" display={selfDisplay} />
+          <p className="text-center text-xs font-medium leading-relaxed text-zinc-500">
+            {compatibilityBridgeCopy(result)}
+          </p>
+          <ProfileStatusCard title="お相手の占術ステータス" display={partnerDisplay} />
+        </div>
+
+        <div className="mt-8 hidden gap-5 md:grid md:grid-cols-2">
+          <ProfileStatusCard title="あなたの占術ステータス" display={selfDisplay} />
+          <ProfileStatusCard title="お相手の占術ステータス" display={partnerDisplay} />
         </div>
 
         <div className="mt-8 rounded-3xl border border-zinc-200/90 bg-white p-7 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
@@ -290,19 +347,10 @@ export default function ResultPage() {
           <p className="text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">
             無料で見られる診断結果
           </p>
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-4">
-              <p className="text-sm text-zinc-600">総合相性スコア</p>
-              <p className="mt-1 text-2xl font-semibold text-zinc-900">{result?.totalScore ?? 0} / 100</p>
-            </div>
-            <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-4">
-              <p className="text-sm text-zinc-600">関係性タイプ</p>
-              <p className="mt-1 text-2xl font-semibold text-zinc-900">{result?.relationshipType ?? "-"}</p>
-            </div>
-          </div>
+          <p className="mt-2 text-xs text-zinc-500 md:hidden">スコアとタイプは上の相性サマリーにも記載しています。</p>
           <div className="mt-4 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-4">
-            <p className="text-sm font-semibold text-zinc-900">総評</p>
-            <p className="mt-1 text-sm text-zinc-700">{result?.summary}</p>
+            <p className="text-sm font-semibold text-zinc-900">総評（全文）</p>
+            <p className="mt-1 text-sm leading-relaxed text-zinc-700">{result?.summary}</p>
           </div>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-4">
