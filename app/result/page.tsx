@@ -96,8 +96,9 @@ function buildDisplayProfile(birthdate: string, birthtime: string) {
   return {
     birthdate: normalizedBirthDate,
     birthtime,
-    dayStem: fortune.dayStem,
+    kanshi: fortune.kanshi,
     fiveElement: fortune.gogyo,
+    yinYang: fortune.yinYang,
     nineStar: fortune.kyusei,
     personality: fortune.koseigaku,
     luckyDirection: "-",
@@ -296,7 +297,7 @@ function ProfileStatusCard({
         <p className="hidden md:block">
           出生時間: <span className="font-semibold text-zinc-900">{d?.birthtime ?? "-"}</span>
         </p>
-        <p>陰陽五行: <span className="font-semibold text-zinc-900">{d?.dayStem ?? "-"}（{d?.fiveElement ?? "-"}）</span></p>
+        <p>陰陽五行: <span className="font-semibold text-zinc-900">{d?.kanshi ?? "-"}（{d?.yinYang ?? "-"}）</span></p>
         <p>
           九星気学: <span className="font-semibold text-zinc-900">{d?.nineStar ?? "-"}</span>
         </p>
@@ -318,7 +319,7 @@ function ProfileStatusCard({
               <span className="font-medium text-zinc-800">{d?.birthtime ?? "-"}</span>
             </p>
             <p>
-              陰陽五行: <span className="font-medium text-zinc-800">{d?.dayStem ?? "-"}（{d?.fiveElement ?? "-"}）</span>
+              陰陽五行: <span className="font-medium text-zinc-800">{d?.kanshi ?? "-"}（{d?.yinYang ?? "-"}）</span>
             </p>
             <p>
               吉方位: <span className="font-medium text-zinc-800">{d?.luckyDirection ?? "-"}</span>
@@ -418,14 +419,16 @@ function ResultPageContent() {
     birthTime: activePartner?.birthtime,
   });
   const myDisplayProfile = {
-    dayStem: myProfile?.dayStem ?? "-",
+    kanshi: myProfile?.kanshi ?? "-",
     gogyo: myProfile?.gogyo ?? "-",
+    yinYang: myProfile?.yinYang ?? "-",
     kyusei: myProfile?.kyusei ?? "-",
     koseigaku: myProfile?.koseigaku ?? "-",
   };
   const partnerDisplayProfile = {
-    dayStem: partnerProfile?.dayStem ?? "-",
+    kanshi: partnerProfile?.kanshi ?? "-",
     gogyo: partnerProfile?.gogyo ?? "-",
+    yinYang: partnerProfile?.yinYang ?? "-",
     kyusei: partnerProfile?.kyusei ?? "-",
     koseigaku: partnerProfile?.koseigaku ?? "-",
   };
@@ -515,13 +518,13 @@ function ResultPageContent() {
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
                 <p className="font-semibold text-zinc-900">四柱推命（あなた）</p>
-                <p className="mt-1">陰陽五行: {myDisplayProfile.dayStem}（{myDisplayProfile.gogyo}）</p>
+                <p className="mt-1">陰陽五行: {myDisplayProfile.kanshi}（{myDisplayProfile.yinYang}）</p>
                 <p>九星気学: {myDisplayProfile.kyusei}</p>
                 <p>個性学: {myDisplayProfile.koseigaku}</p>
               </div>
               <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
                 <p className="font-semibold text-zinc-900">四柱推命（お相手）</p>
-                <p className="mt-1">陰陽五行: {partnerDisplayProfile.dayStem}（{partnerDisplayProfile.gogyo}）</p>
+                <p className="mt-1">陰陽五行: {partnerDisplayProfile.kanshi}（{partnerDisplayProfile.yinYang}）</p>
                 <p>九星気学: {partnerDisplayProfile.kyusei}</p>
                 <p>個性学: {partnerDisplayProfile.koseigaku}</p>
               </div>

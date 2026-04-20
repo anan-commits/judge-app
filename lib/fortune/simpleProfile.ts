@@ -6,8 +6,9 @@ export type SimpleFortuneInput = {
 };
 
 export type SimpleFortuneProfile = {
-  dayStem: string;
+  kanshi: string;
   gogyo: string;
+  yinYang: string;
   kyusei: string;
   koseigaku: string;
   luckyDirection: string;
@@ -26,8 +27,9 @@ export function getSimpleFortuneProfile(input: SimpleFortuneInput): SimpleFortun
   if (!core) {
     console.error("[fortune] getSimpleFortuneProfile fallback", input);
     return {
-      dayStem: "-",
+      kanshi: "-",
       gogyo: "木",
+      yinYang: "木の陽",
       kyusei: "-",
       koseigaku: "-",
       luckyDirection: "東",

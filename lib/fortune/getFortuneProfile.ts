@@ -2,8 +2,9 @@ import { calculateYinYangGogyo } from "./yinyangGogyo";
 import { normalizeBirthDate } from "./normalizeBirthDate";
 
 export type FortuneProfile = {
-  dayStem: string;
+  kanshi: string;
   gogyo: string;
+  yinYang: string;
   kyusei: string;
   koseigaku: string;
 };
@@ -21,6 +22,18 @@ const kyuseiMap = [
 ] as const;
 
 const koseigakuList = ["大物思考完璧", "城思考", "人思考"] as const;
+const kanshiByDestinyNumber: Record<number, string> = {
+  1: "甲寅",
+  2: "乙卯",
+  3: "丙辰",
+  4: "丁巳",
+  5: "戊午",
+  6: "己未",
+  7: "庚申",
+  8: "辛酉",
+  9: "壬戌",
+  0: "癸亥",
+};
 
 export function getFortuneProfile(input: {
   birthDate?: string;
@@ -53,15 +66,17 @@ export function getFortuneProfile(input: {
     });
     return null;
   }
-  const dayStem = gogyoResult.stem;
+  const kanshi = kanshiByDestinyNumber[gogyoResult.destinyNumber] ?? `${gogyoResult.stem}寅`;
   const gogyo = gogyoResult.element;
+  const yinYang = gogyoResult.label;
   const kyusei = kyuseiMap[(year + 2) % 9];
   // 1971-01 case: (1971+1+2)%3 => 0 => "大物思考完璧"
   const koseigaku = koseigakuList[(year + month + 2) % 3];
 
   const profile = {
-    dayStem,
+    kanshi,
     gogyo,
+    yinYang,
     kyusei,
     koseigaku,
   };
