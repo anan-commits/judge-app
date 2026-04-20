@@ -9,8 +9,8 @@ import {
   type CompatibilityResult,
   type PersonProfile,
 } from "../lib/compatibility";
-import { loadPeople } from "../../lib/people/storage";
-import type { Person, Relationship } from "../../lib/people/types";
+import { loadPeople, loadRelationshipLogs, saveRelationshipLogs } from "../../lib/people/storage";
+import type { Person, Relationship, RelationshipLog } from "../../lib/people/types";
 
 const selfProfile: PersonProfile = {
   birthdate: "1992-11-08",
@@ -91,6 +91,8 @@ type RelationshipLogItem = {
   content: string;
 };
 
+type QuickLogType = "line" | "talk" | "date" | "call" | "note";
+
 type LatestInput = {
   myBirthDate?: string;
   myBirthTime?: string;
@@ -106,6 +108,38 @@ const relationshipLabelMap: Record<Relationship["type"], string> = {
   friend: "友人",
   family: "家族",
 };
+
+const quickLogLabels: Record<QuickLogType, string> = {
+  line: "LINE",
+  talk: "会話",
+  date: "デート",
+  call: "電話",
+  note: "気づき",
+};
+
+const quickSuggestions: { type: QuickLogType; label: string; content: string }[] = [
+  { type: "line", label: "既読スルーされた", content: "既読スルーされた" },
+  { type: "line", label: "返信きた", content: "返信きた" },
+  { type: "date", label: "デートした", content: "デートした" },
+  { type: "call", label: "電話した", content: "電話した" },
+];
+
+function analyzeQuickLog(type: QuickLogType, content: string): string {
+  const normalized = content.toLowerCase();
+  if (normalized.includes("既読") && normalized.includes("スルー")) {
+    return "既読スルー直後は追撃より待機が安全です。次の一手は短文1通に絞ると温度差を抑えやすいです。";
+  }
+  if (type === "date") {
+    return "デート後は感謝＋次の余白を残す一言が有効です。結論を急がず接点維持を優先してください。";
+  }
+  if (type === "call") {
+    return "電話後は情報量が多くなりやすいため、要点1つのフォローLINEで関係を安定させるのが最適です。";
+  }
+  if (type === "line" && normalized.includes("返信")) {
+    return "返信が来た局面は主導しすぎず、相手が返しやすい短文で往復回数を増やすと前進しやすいです。";
+  }
+  return "記録を反映しました。温度差と相手の負荷を見ながら、次は短文・余白ありで動くのが安全です。";
+}
 
 function buildPhaseMeta(
   mode: StrategyMode,
@@ -666,6 +700,10 @@ function ChatPageContent() {
   const [strategyMode, setStrategyMode] = useState<StrategyMode>("reply");
   const [liveEntries, setLiveEntries] = useState<LiveAnalysisEntry[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [quickLogType, setQuickLogType] = useState<QuickLogType>("line");
+  const [quickLogContent, setQuickLogContent] = useState("");
+  const [relationshipLogs, setRelationshipLogs] = useState<RelationshipLog[]>([]);
+  const [quickAnalysis, setQuickAnalysis] = useState("");
 
   const isFullDemo = searchParams.get("full") === "1";
   const isFreeUser = !isFullDemo;
@@ -684,6 +722,7 @@ function ChatPageContent() {
     }
     const loadedPeople = loadPeople();
     setPeople(loadedPeople);
+    setRelationshipLogs(loadRelationshipLogs());
     const initialPersonId = latest?.personId || loadedPeople[0]?.id || "";
     setCurrentPersonId(initialPersonId);
     setLatestInput(latest);
@@ -744,6 +783,13 @@ function ChatPageContent() {
   }, [mode, draft]);
 
   const displayThreads = useMemo(() => threadsForMode(mode), [mode]);
+  const currentPersonLogs = useMemo(
+    () =>
+      relationshipLogs
+        .filter((log) => log.personId === currentPersonId)
+        .sort((a, b) => b.timestamp - a.timestamp),
+    [relationshipLogs, currentPersonId]
+  );
 
   const summaryTags = useMemo(() => {
     if (!result) return [];
@@ -760,6 +806,25 @@ function ChatPageContent() {
     .reverse()
     .find((entry) => entry.analysis.kind === "line");
   const fixedCopyText = latestLineEntry?.analysis.linePatterns?.[0]?.text ?? latestLineEntry?.analysis.lineDraft ?? "";
+
+  const handleQuickLogSave = () => {
+    const content = quickLogContent.trim();
+    if (!content || !currentPersonId) return;
+    const logType: RelationshipLog["type"] =
+      quickLogType === "talk" ? "note" : quickLogType;
+    const log: RelationshipLog = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      personId: currentPersonId,
+      type: logType,
+      content,
+      timestamp: Date.now(),
+    };
+    const nextLogs = [log, ...relationshipLogs];
+    setRelationshipLogs(nextLogs);
+    saveRelationshipLogs(nextLogs);
+    setQuickAnalysis(analyzeQuickLog(quickLogType, content));
+    setQuickLogContent("");
+  };
 
   const handleSend = async () => {
     const text = draft.trim();
@@ -964,6 +1029,75 @@ function ChatPageContent() {
           </div>
 
           <div className="mt-4 rounded-2xl border border-zinc-200 bg-white p-3 sm:p-4">
+            <div className="mb-3 space-y-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-500">
+                関係ログクイック入力
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {(Object.keys(quickLogLabels) as QuickLogType[]).map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setQuickLogType(type)}
+                    className={`inline-flex h-8 items-center rounded-full px-3 text-xs font-medium ${
+                      quickLogType === type
+                        ? "bg-zinc-900 text-white"
+                        : "border border-zinc-300 bg-white text-zinc-700"
+                    }`}
+                  >
+                    + {quickLogLabels[type]}
+                  </button>
+                ))}
+              </div>
+              <textarea
+                rows={2}
+                value={quickLogContent}
+                onChange={(e) => setQuickLogContent(e.target.value)}
+                placeholder="何があった？（一言でOK）"
+                className="min-h-[64px] w-full resize-none rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 outline-none placeholder:text-zinc-400"
+              />
+              <div className="flex flex-wrap gap-2">
+                {quickSuggestions.map((item) => (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() => {
+                      setQuickLogType(item.type);
+                      setQuickLogContent(item.content);
+                    }}
+                    className="rounded-full border border-zinc-300 bg-white px-3 py-1 text-[11px] text-zinc-700"
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleQuickLogSave}
+                  disabled={!quickLogContent.trim() || !currentPersonId}
+                  className={`inline-flex h-9 items-center rounded-full px-4 text-xs font-semibold ${
+                    quickLogContent.trim() && currentPersonId
+                      ? "bg-zinc-900 text-white"
+                      : "cursor-not-allowed bg-zinc-300 text-zinc-600"
+                  }`}
+                >
+                  ログを保存
+                </button>
+              </div>
+              {quickAnalysis ? (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                  {quickAnalysis}
+                </div>
+              ) : null}
+              <div className="space-y-1">
+                {currentPersonLogs.slice(0, 6).map((log) => (
+                  <div key={log.id} className="text-xs text-zinc-700">
+                    {log.type}：{log.content}
+                  </div>
+                ))}
+              </div>
+            </div>
             <div className="mb-3 flex flex-wrap gap-2">
               {[
                 { key: "reply", label: "返信分析" },
