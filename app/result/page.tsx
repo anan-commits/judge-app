@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   buildPartnerProfile,
   calculateCompatibility,
@@ -28,6 +28,8 @@ type RelationshipConversionPattern = {
   essence: string;
   tendency: string;
   neglectRisk: string;
+  /** 本質の続きで最重要な一点をぼかして見せる（課金ティーズ） */
+  tease: string;
 };
 
 const RELATIONSHIP_CONVERSION_PATTERNS: RelationshipConversionPattern[] = [
@@ -37,6 +39,8 @@ const RELATIONSHIP_CONVERSION_PATTERNS: RelationshipConversionPattern[] = [
       "その空気の中で、あなたは返信が遅いと不安を口にしたり、確認の一言を重ねてしまいやすくなります。",
     neglectRisk:
       "相手は負担として距離を置き、あなただけが画面の前で空回りし続けやすいです。気づかないうちに関係が終わる可能性があります。",
+    tease:
+      "決定的なのは、LINEの文面そのものより「相手が無意識に出しているサイン」をどこで拾うかです。ここを外すと温度差は埋まらず、逆に“空回りのループ”だけが残りやすくなります。",
   },
   {
     essence: "この2人は、言葉に出さないすれ違いが静かに積もりやすい関係です。",
@@ -44,6 +48,8 @@ const RELATIONSHIP_CONVERSION_PATTERNS: RelationshipConversionPattern[] = [
       "その積もりを抱えたまま、あなたは察してほしい気持ちだけを増やし、LINEを開いては閉じるを繰り返しやすくなります。",
     neglectRisk:
       "ある日突然、相手からの温度がゼロになるタイミングが来やすいです。あなたが気づいたときには、もう戻れないラインまで進んでいる可能性があります。",
+    tease:
+      "本当に危ないのは、既読の有無より「沈黙の“長さ”と相手の生活リズムが重なる瞬間」です。この交差点を読めないまま送る一言が、関係を静かに終わらせるトリガーになりやすいです。",
   },
   {
     essence: "この2人は、好意を出し合うほど踏み込みの度合いがズレやすい関係です。",
@@ -51,6 +57,8 @@ const RELATIONSHIP_CONVERSION_PATTERNS: RelationshipConversionPattern[] = [
       "そのズレを埋めようとして、あなたは連絡の回数と文章量を増やし、「ちゃんと伝えよう」と必死になりやすくなります。",
     neglectRisk:
       "相手にとってはしつこさに見え、沈黙・既読スルー・距離の固定化に進みやすいです。挽回がきかないほど冷え切る可能性があります。",
+    tease:
+      "踏み込みの強さを調整する鍵は、文章の長さではなく「相手が今いる心理フェーズ」への合わせ方にあります。フェーズを誤ると、好意が一気に負担に反転しやすいです。",
   },
   {
     essence: "この2人は、一度盛り上がったあと急に温度差が露わになりやすい関係です。",
@@ -58,6 +66,8 @@ const RELATIONSHIP_CONVERSION_PATTERNS: RelationshipConversionPattern[] = [
       "その落差に耐えられず、あなたは我慢と追い討ちのあいだを往復し、自分を責める言葉まで増やしやすくなります。",
     neglectRisk:
       "あなたの我慢は相手に伝わらず、「別にいいや」で終わらせられやすいです。気づかないうちに関係が終わる可能性があります。",
+    tease:
+      "盛り上がり直後にだけ出る「相手の安心サイン」と、その後にだけ出る「距離を取るサイン」はセットで読む必要があります。片方だけを信じると、急な冷め込みにあなただけが取り残されやすいです。",
   },
   {
     essence: "この2人は、表面的には穏やかでも、内心の不安だけが肥大化しやすい関係です。",
@@ -65,6 +75,8 @@ const RELATIONSHIP_CONVERSION_PATTERNS: RelationshipConversionPattern[] = [
       "その不安を隠したまま、あなたは既読や返信の速さを何度も確かめ、小さなサインを探し続けやすくなります。",
     neglectRisk:
       "本音のタイミングを逃したまま時間が空くほど、相手は勝手な解釈で距離を決めやすいです。あなたが気づいたときには、もう終わっている可能性があります。",
+    tease:
+      "表面の穏やかさが続くほど、相手の頭の中では「別ルートの結論」が先に固まりやすいです。あなたが気づく前に、会話の前提だけがすり替わっているパターンが起きやすいです。",
   },
 ];
 
@@ -121,9 +133,15 @@ function pickStoryPatternIndex(partnerBirthdate: string | undefined): number {
   return (seeded + jitter) % RELATIONSHIP_CONVERSION_PATTERNS.length;
 }
 
-function RelationshipEssenceSection({ partnerBirthdate }: { partnerBirthdate: string | undefined }) {
+function RelationshipEssenceSection({
+  partnerBirthdate,
+  isFreeUser,
+}: {
+  partnerBirthdate: string | undefined;
+  isFreeUser: boolean;
+}) {
   const [patternIndex] = useState(() => pickStoryPatternIndex(partnerBirthdate));
-  const { essence, tendency, neglectRisk } = RELATIONSHIP_CONVERSION_PATTERNS[patternIndex];
+  const { essence, tendency, neglectRisk, tease } = RELATIONSHIP_CONVERSION_PATTERNS[patternIndex];
   return (
     <section
       className="border-b-2 border-amber-300/70 bg-gradient-to-br from-amber-50 via-orange-50/95 to-rose-50/50 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.65)]"
@@ -162,6 +180,32 @@ function RelationshipEssenceSection({ partnerBirthdate }: { partnerBirthdate: st
               {neglectRisk}
             </p>
           </div>
+
+          {isFreeUser ? (
+            <div className="space-y-4 border-t border-dashed border-amber-300/70 pt-6">
+              <div>
+                <p className="text-[11px] font-semibold tracking-wide text-amber-900/80">
+                  続きの核心（プレビュー）
+                </p>
+                <p
+                  aria-hidden
+                  className="mt-2 select-none text-sm leading-[1.75] text-amber-950/90 blur-[3.5px] sm:text-[15px]"
+                >
+                  {tease}
+                </p>
+                <p className="sr-only">{tease}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  console.log("[paywall] 続きを見る ¥980", { patternIndex });
+                }}
+                className="inline-flex h-12 min-h-[48px] w-full max-w-md items-center justify-center rounded-full bg-zinc-900 px-6 text-sm font-semibold text-white shadow-md transition hover:bg-zinc-800"
+              >
+                続きを見る（¥980）
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
     </section>
@@ -256,8 +300,10 @@ function ProfileStatusCard({
   );
 }
 
-export default function ResultPage() {
+function ResultPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isFreeUser = searchParams.get("full") !== "1";
   const [saved, setSaved] = useState(false);
   const [checkedSession, setCheckedSession] = useState(false);
   const [activePartnerIndex] = useState(0);
@@ -333,7 +379,10 @@ export default function ResultPage() {
         </div>
       </header>
 
-      <RelationshipEssenceSection partnerBirthdate={activePartner?.birthdate} />
+      <RelationshipEssenceSection
+        partnerBirthdate={activePartner?.birthdate}
+        isFreeUser={isFreeUser}
+      />
 
       <section className="border-b border-zinc-200/80 bg-white">
         <div className="mx-auto max-w-6xl px-6 py-14 md:px-10 md:py-18">
@@ -561,5 +610,21 @@ export default function ResultPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+export default function ResultPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-[#f7f7f5] text-zinc-900">
+          <div className="mx-auto max-w-6xl px-6 py-16 text-sm text-zinc-500 md:px-10">
+            診断結果を読み込んでいます...
+          </div>
+        </main>
+      }
+    >
+      <ResultPageContent />
+    </Suspense>
   );
 }
