@@ -202,6 +202,9 @@ export default function DiagnosisPage() {
             <h3 className="mt-1 text-lg font-semibold text-zinc-950">
               あなたは「{selfInsight.typeName}」です
             </h3>
+            <div className="mt-2 text-xs text-gray-500">
+              {myProfile.dayStem}（{myProfile.gogyo}）｜{myProfile.kyusei}｜{myProfile.koseigaku}
+            </div>
             <div className="mt-4 grid gap-3">
               <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3">
                 <p className="text-xs font-medium text-zinc-600">性格</p>
